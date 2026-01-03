@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Runtime data - machine configurations and world chunks
+minecraft-data/machine-data/
+minecraft-data/world-data/
+machine-data/
+world-data/
+
+# Log files
+*.log
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+

@@ -1,0 +1,2636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC World Server - Control Panel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #2a2a2a;
+            border-right: 2px solid #3a3a3a;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: #1a1a1a;
+            border-bottom: 2px solid #3a3a3a;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #4a9eff;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.connected {
+            background: #4caf50;
+            box-shadow: 0 0 8px #4caf50;
+        }
+
+        .status-dot.disconnected {
+            background: #f44336;
+        }
+
+        .machine-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .machine-item {
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .machine-item:hover {
+            background: #3a3a3a;
+            border-color: #4a9eff;
+        }
+
+        .machine-item.selected {
+            background: #3a3a3a;
+            border-color: #ffff00;
+            border-width: 2px;
+        }
+
+        .machine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .machine-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #4a9eff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .machine-name input {
+            flex: 1;
+            padding: 4px 8px;
+            background: #222;
+            border: 1px solid #4a9eff;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 16px;
+            font-weight: bold;
+            font-family: inherit;
+        }
+
+        .edit-icon {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .edit-icon:hover {
+            opacity: 1;
+            color: #4a9eff;
+        }
+
+        .edit-icon.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            color: #555;
+        }
+
+        .edit-icon.disabled:hover {
+            opacity: 0.3;
+            color: #555;
+        }
+
+        .machine-type {
+            padding: 4px 8px;
+            background: #555;
+            border-radius: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .machine-type.computer {
+            background: #2196f3;
+        }
+
+        .machine-type.turtle {
+            background: #ff9800;
+        }
+
+        .machine-type.mining_turtle {
+            background: #4caf50;
+        }
+
+        .machine-type.chatty_turtle {
+            background: #9c27b0;
+        }
+
+        .machine-type.android {
+            background: #ff5722;
+        }
+
+        .machine-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .info-value.status-idle {
+            color: #4caf50;
+        }
+
+        .info-value.status-moving {
+            color: #ff9800;
+        }
+
+        .info-value.status-busy {
+            color: #2196f3;
+        }
+
+        .info-value.unknown {
+            color: #888;
+            font-style: italic;
+        }
+
+        .machine-actions {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: #444;
+            color: #e0e0e0;
+        }
+
+        .btn:hover {
+            background: #555;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: #4a9eff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3a8eef;
+        }
+
+        .btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .viewer {
+            flex: 1;
+            position: relative;
+            background: #0a0a0a;
+        }
+
+        .viewer-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(26, 26, 26, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            z-index: 10;
+        }
+
+        .viewer-overlay h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #4a9eff;
+        }
+
+        .turtle-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 26, 26, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            z-index: 10;
+            display: none;
+        }
+
+        .turtle-controls.visible {
+            display: block;
+        }
+
+        .android-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 26, 26, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            z-index: 10;
+            display: none;
+        }
+
+        .android-controls.visible {
+            display: block;
+        }
+
+        .android-controls .controls-title {
+            font-size: 14px;
+            color: #4a9eff;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .android-controls .coordinate-inputs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .android-controls .coordinate-inputs input {
+            width: 60px;
+            padding: 6px;
+            background: #222;
+            border: 1px solid #4a9eff;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .android-controls .coordinate-inputs input:focus {
+            outline: none;
+            border-color: #4a9eff;
+            box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
+        }
+
+        .android-controls .coordinate-inputs label {
+            font-size: 12px;
+            color: #888;
+            min-width: 15px;
+        }
+
+        .android-controls .move-button {
+            width: 100%;
+            padding: 8px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .android-controls .move-button:hover {
+            background: #3a8eef;
+        }
+
+        .android-controls .move-button:active {
+            background: #2a7edf;
+        }
+
+        .turtle-controls .controls-title {
+            font-size: 14px;
+            color: #4a9eff;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .turtle-controls .controls-grid {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .turtle-controls .directional-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 120px;
+        }
+        
+        .turtle-controls .vertical-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 18px;
+        }
+
+        /* Scrollbar styling */
+        .machine-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .machine-list::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .machine-list::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .machine-list::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .hover-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 26, 26, 0.9);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+
+        .hover-info.visible {
+            display: block;
+        }
+
+        .hover-info-title {
+            color: #4a9eff;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .hover-info-detail {
+            color: #aaa;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h1 style="margin: 0;">CC World Server</h1>
+                <button class="btn-icon" onclick="window.shutdownServer()" title="Shutdown server">⏻</button>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot disconnected" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </div>
+        <div class="machine-list" id="machineList">
+            <div class="empty-state">No machines connected</div>
+        </div>
+    </div>
+    <div class="viewer" id="viewer">
+        <div class="turtle-controls" id="turtleControls">
+            <div class="controls-title">Turtle Controls</div>
+            <div class="controls-grid">
+                <div class="directional-controls">
+                    <!-- Empty space for grid layout (WASD-style) -->
+                    <div></div>
+                    <button class="btn" id="btnForward" title="Move forward (↑)">
+                        ↑
+                    </button>
+                    <div></div>
+                    <button class="btn" id="btnLeft" title="Turn left (←)">
+                        ←
+                    </button>
+                    <div></div>
+                    <button class="btn" id="btnRight" title="Turn right (→)">
+                        →
+                    </button>
+                    <div></div>
+                    <button class="btn" id="btnBack" title="Move backward (↓)">
+                        ↓
+                    </button>
+                    <div></div>
+                </div>
+                <div class="vertical-controls">
+                    <button class="btn" id="btnUp" title="Move up (+)">
+                        ⬆
+                    </button>
+                    <button class="btn" id="btnDown" title="Move down (-)">
+                        ⬇
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="android-controls" id="androidControls">
+            <div class="controls-title">Android Controls</div>
+            <div class="coordinate-inputs">
+                <label>X:</label>
+                <input type="number" id="androidX" placeholder="0" step="1">
+                <label>Y:</label>
+                <input type="number" id="androidY" placeholder="0" step="1">
+                <label>Z:</label>
+                <input type="number" id="androidZ" placeholder="0" step="1">
+            </div>
+            <button class="move-button" id="androidMoveButton" onclick="window.moveAndroid()">Move</button>
+            <div class="live-frequency-controls" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #3a3a3a;">
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px;">
+                    <span>Update Frequency (Hz):</span>
+                    <input type="number" id="androidUpdateFreq" min="1" max="20" value="8" step="1" style="width: 60px; padding: 4px; background: #222; border: 1px solid #4a9eff; border-radius: 4px; color: #e0e0e0; font-size: 13px; text-align: center;">
+                </label>
+                <div style="font-size: 11px; color: #888; margin-top: 4px;">Updates per second when live mode is enabled</div>
+            </div>
+        </div>
+        <div class="hover-info" id="hoverInfo">
+            <div class="hover-info-title" id="hoverTitle"></div>
+            <div class="hover-info-detail" id="hoverDetail"></div>
+        </div>
+    </div>
+
+    <script>
+        const WS_URL = 'ws://localhost:8080';
+        let ws = null;
+        let machines = new Map();
+        let entities = new Map();
+        let scene, camera, renderer;
+        let machineMeshes = new Map();
+        let chunks = new Map(); // "dimension,x,z" -> chunk data
+        let chunkMeshes = new Map(); // "dimension,x,z" -> THREE.Group
+        let blockTextures = new Map(); // block name -> THREE.Texture
+        
+        // Camera controls
+        let isRightMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+        let rightClickStartX = 0, rightClickStartY = 0; // Track right-click start position
+        let cameraRotation = { x: 0, y: 0 };
+        let cameraPosition = { x: 0, y: 50, z: 100 };
+        const moveSpeed = 0.5;
+        const rotationSpeed = 0.002; // Reduced for smoother feel
+        const keys = {};
+        let selectedMachineId = null;
+        let selectionMesh = null;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let hoveredObject = null;
+        let androidLiveIntervals = new Map(); // machineId -> intervalId
+        let androidUpdateFrequencies = new Map(); // machineId -> frequency (Hz)
+        let machinePositionHistory = new Map(); // machineId -> { lastPosition, currentPosition, lastTime, currentTime }
+
+        // Position interpolation function for smooth movement
+        function interpolatePosition(machineId, targetPosition, timestamp) {
+            if (!machinePositionHistory.has(machineId)) {
+                // First position - initialize both last and current to the same value
+                // This allows interpolation to work immediately
+                machinePositionHistory.set(machineId, {
+                    lastPosition: { ...targetPosition },
+                    lastTime: timestamp - 1000, // Set lastTime to 1 second ago so interpolation starts from "past"
+                    currentPosition: { ...targetPosition },
+                    currentTime: timestamp
+                });
+                return;
+            }
+            
+            const history = machinePositionHistory.get(machineId);
+            
+            // Always update position history when a new position arrives (even if position hasn't changed)
+            // Shift current to last
+            if (history.currentPosition && history.currentTime > 0) {
+                history.lastPosition = { ...history.currentPosition };
+                history.lastTime = history.currentTime;
+            }
+            // Set new current position
+            history.currentPosition = { ...targetPosition };
+            history.currentTime = timestamp;
+        }
+        
+        // Get interpolated position for rendering (smooth movement between updates)
+        function getInterpolatedPosition(machineId, currentTime) {
+            const history = machinePositionHistory.get(machineId);
+            if (!history || !history.currentPosition) return null;
+            
+            // If we have both last and current positions with different timestamps, interpolate
+            if (history.lastPosition && history.currentPosition && 
+                history.lastTime > 0 && history.currentTime > history.lastTime) {
+                const timeDiff = history.currentTime - history.lastTime;
+                
+                // Calculate elapsed time since the last position update
+                const elapsed = currentTime - history.lastTime;
+                
+                if (timeDiff > 0 && elapsed >= 0) {
+                    // Calculate interpolation factor: 0 at lastTime (lastPosition), 1 at currentTime (currentPosition)
+                    let t = elapsed / timeDiff;
+                    
+                    // Clamp to reasonable bounds (allow slight extrapolation up to 1.2x the interval)
+                    t = Math.max(0, Math.min(1.2, t));
+                    
+                    // Use smoothstep for smoother interpolation
+                    const smoothT = t < 1 ? (t * t * (3 - 2 * t)) : t; // Smoothstep for [0,1], linear beyond
+                    
+                    return {
+                        x: history.lastPosition.x + (history.currentPosition.x - history.lastPosition.x) * smoothT,
+                        y: history.lastPosition.y + (history.currentPosition.y - history.lastPosition.y) * smoothT,
+                        z: history.lastPosition.z + (history.currentPosition.z - history.lastPosition.z) * smoothT
+                    };
+                }
+            }
+            
+            // Fall back to current position if no interpolation possible
+            return history.currentPosition;
+        }
+        
+        // Initialize Three.js scene
+        function initScene() {
+            const container = document.getElementById('viewer');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Default to light sky blue
+            
+            camera = new THREE.PerspectiveCamera(
+                75,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+            
+            // Add lighting - 2pm sunlight (top-down with slight angle)
+            // Ambient light for overall illumination
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            
+            // Main directional light - positioned like 2pm sun (mostly overhead, slight angle)
+            // Sun position: high up (Y=100), slightly to the south-west (X=-30, Z=-30)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            directionalLight.position.set(-30, 100, -30);
+            directionalLight.castShadow = false;
+            scene.add(directionalLight);
+            
+            // Secondary fill light from opposite angle for better illumination
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.2);
+            fillLight.position.set(30, 50, 30);
+            scene.add(fillLight);
+            
+            
+            // Mouse controls
+            container.addEventListener('contextmenu', (e) => e.preventDefault());
+            container.addEventListener('mousedown', (e) => {
+                if (e.button === 2) { // Right mouse button
+                    isRightMouseDown = true;
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                    rightClickStartX = e.clientX; // Store start position
+                    rightClickStartY = e.clientY;
+                } else if (e.button === 0) { // Left mouse button - click to select
+                    handleClick(e);
+                }
+            });
+            container.addEventListener('mouseup', (e) => {
+                if (e.button === 2) {
+                    isRightMouseDown = false;
+                    // Only handle right-click if it was a click (not a drag)
+                    // Check if mouse moved less than 5 pixels (indicates a click, not drag)
+                    const dragThreshold = 5;
+                    const dragDistance = Math.sqrt(
+                        Math.pow(e.clientX - rightClickStartX, 2) + 
+                        Math.pow(e.clientY - rightClickStartY, 2)
+                    );
+                    if (dragDistance < dragThreshold) {
+                        handleRightClick(e);
+                    }
+                }
+            });
+            container.addEventListener('mousemove', (e) => {
+                if (isRightMouseDown) {
+                    const deltaX = e.clientX - mouseX;
+                    const deltaY = e.clientY - mouseY;
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                    
+                    // Invert Y for more natural camera feel
+                    cameraRotation.y += deltaX * rotationSpeed;
+                    cameraRotation.x += deltaY * rotationSpeed;
+                    cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.x));
+                } else {
+                    // Handle hover
+                    handleHover(e);
+                }
+            });
+            
+            // Keyboard controls (WASD when right-clicking for camera, arrow keys for turtle movement)
+            window.addEventListener('keydown', (e) => {
+                keys[e.key.toLowerCase()] = true;
+                
+                // Turtle movement controls (only when a turtle is selected and not right-clicking)
+                if (selectedMachineId && !isRightMouseDown) {
+                    const machine = machines.get(selectedMachineId);
+                    const isTurtle = machine && machine.type && (machine.type === 'turtle' || machine.type.endsWith('_turtle'));
+                    
+                    if (isTurtle) {
+                        if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'forward'});
+                        } else if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'back'});
+                        } else if (e.key === 'ArrowLeft') {
+                            e.preventDefault();
+                            window.sendMoveThenUpdate(selectedMachineId, 'turn', {direction: 'left'});
+                        } else if (e.key === 'ArrowRight') {
+                            e.preventDefault();
+                            window.sendMoveThenUpdate(selectedMachineId, 'turn', {direction: 'right'});
+                        } else if (e.key === '+' || e.key === '=') {
+                            e.preventDefault();
+                            window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'up'});
+                        } else if (e.key === '-' || e.key === '_') {
+                            e.preventDefault();
+                            window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'down'});
+                        }
+                    }
+                }
+            });
+            window.addEventListener('keyup', (e) => {
+                keys[e.key.toLowerCase()] = false;
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+            
+            // Update camera based on controls
+            function updateCamera() {
+                if (isRightMouseDown) {
+                    // Calculate forward, right, and up vectors based on rotation
+                    const forward = new THREE.Vector3(
+                        Math.sin(cameraRotation.y) * Math.cos(cameraRotation.x),
+                        -Math.sin(cameraRotation.x),
+                        -Math.cos(cameraRotation.y) * Math.cos(cameraRotation.x)
+                    );
+                    const right = new THREE.Vector3(
+                        Math.sin(cameraRotation.y - Math.PI / 2),
+                        0,
+                        -Math.cos(cameraRotation.y - Math.PI / 2)
+                    );
+                    
+                    // Apply movement
+                    if (keys['w']) {
+                        cameraPosition.x += forward.x * moveSpeed;
+                        cameraPosition.y += forward.y * moveSpeed;
+                        cameraPosition.z += forward.z * moveSpeed;
+                    }
+                    if (keys['s']) {
+                        cameraPosition.x -= forward.x * moveSpeed;
+                        cameraPosition.y -= forward.y * moveSpeed;
+                        cameraPosition.z -= forward.z * moveSpeed;
+                    }
+                    // Reversed A/D for correct strafing
+                    if (keys['a']) {
+                        cameraPosition.x += right.x * moveSpeed;
+                        cameraPosition.z += right.z * moveSpeed;
+                    }
+                    if (keys['d']) {
+                        cameraPosition.x -= right.x * moveSpeed;
+                        cameraPosition.z -= right.z * moveSpeed;
+                    }
+                    if (keys[' ']) { // Space
+                        cameraPosition.y += moveSpeed;
+                    }
+                    if (keys['shift']) {
+                        cameraPosition.y -= moveSpeed;
+                    }
+                }
+                
+                // Update camera position and rotation
+                camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+                const lookAtX = cameraPosition.x + Math.sin(cameraRotation.y) * Math.cos(cameraRotation.x);
+                const lookAtY = cameraPosition.y - Math.sin(cameraRotation.x);
+                const lookAtZ = cameraPosition.z - Math.cos(cameraRotation.y) * Math.cos(cameraRotation.x);
+                camera.lookAt(lookAtX, lookAtY, lookAtZ);
+                
+                // Update selection indicator position to follow selected machine
+                if (selectionMesh && selectedMachineId) {
+                    const machineGroup = machineMeshes.get(selectedMachineId);
+                    const machine = machines.get(selectedMachineId);
+                    if (machineGroup && machine) {
+                        let cubeCenter;
+                        if (machine.type === 'android') {
+                            // Android: mesh is at (0.3, 0.9, 0.3) in group space, group position is at (x, y-1, z)
+                            // So cube center in world space is (x+0.3, (y-1)+0.9, z+0.3) = (x+0.3, y-0.1, z+0.3)
+                            // But we want visual center at (x+0.3, y+0.9, z+0.3) since feet should be at y
+                            cubeCenter = machineGroup.position.clone().add(new THREE.Vector3(0.3, 0.9, 0.3));
+                        } else {
+                            cubeCenter = machineGroup.position.clone().add(new THREE.Vector3(0.5, 0.5, 0.5));
+                        }
+                        selectionMesh.position.copy(cubeCenter);
+                    }
+                }
+            }
+            
+            // Handle hover detection
+            function handleHover(event) {
+                const rect = container.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Collect all intersectable objects (machines and blocks)
+                const intersectableObjects = [];
+                
+                // Add machine meshes
+                machineMeshes.forEach((meshGroup, id) => {
+                    meshGroup.children.forEach(child => {
+                        if (child instanceof THREE.Mesh) {
+                            child.userData = { type: 'machine', machineId: id };
+                            intersectableObjects.push(child);
+                        }
+                    });
+                });
+                
+                // Add chunk meshes (chunkMeshes are now Groups containing multiple Meshes)
+                chunkMeshes.forEach((chunkGroup) => {
+                    if (chunkGroup instanceof THREE.Group) {
+                        // Add all child meshes from the group
+                        chunkGroup.children.forEach(child => {
+                            if (child instanceof THREE.Mesh) {
+                                // Preserve block name from userData if it exists
+                                if (!child.userData.type) {
+                                    child.userData.type = 'block';
+                                }
+                                intersectableObjects.push(child);
+                            }
+                        });
+                    }
+                });
+                
+                const intersects = raycaster.intersectObjects(intersectableObjects);
+                
+                const hoverInfo = document.getElementById('hoverInfo');
+                const hoverTitle = document.getElementById('hoverTitle');
+                const hoverDetail = document.getElementById('hoverDetail');
+                
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    const userData = intersect.object.userData;
+                    
+                    if (userData.type === 'machine') {
+                        const machine = machines.get(userData.machineId);
+                        const entity = entities.get(userData.machineId);
+                        const position = entity?.position || machine?.status?.position;
+                        const label = machine?.status?.label || '';
+                        
+                        // Use label if available, otherwise fallback to type + ID
+                        const displayName = label || `${machine?.type?.replace('_', ' ') || 'Machine'} #${userData.machineId}`;
+                        hoverTitle.textContent = displayName;
+                        if (position && typeof position === 'object') {
+                            hoverDetail.textContent = `Position: ${position.x}, ${position.y}, ${position.z}`;
+                        } else {
+                            hoverDetail.textContent = 'Position: Unknown';
+                        }
+                        hoverInfo.classList.add('visible');
+                        hoveredObject = intersect.object;
+                    } else if (userData.type === 'block') {
+                        // Calculate block position from intersection point
+                        const point = intersect.point;
+                        // Move slightly back along the normal to ensure we get the correct block
+                        // Use a larger offset to ensure we're inside the block, not on the face
+                        const normal = intersect.face.normal.clone();
+                        const adjustedPoint = point.clone().add(normal.multiplyScalar(-0.1));
+                        const blockX = Math.floor(adjustedPoint.x);
+                        const blockY = Math.floor(adjustedPoint.y);
+                        const blockZ = Math.floor(adjustedPoint.z);
+                        
+                        // Look up block name from chunk data
+                        // Try exact match first, then search nearby positions (within 1 block) if not found
+                        let blockName = 'unknown';
+                        let foundBlock = null;
+                        if (userData.chunkData && userData.chunkData.data) {
+                            // First try exact match
+                            foundBlock = userData.chunkData.data.find(block => 
+                                block.x === blockX && block.y === blockY && block.z === blockZ
+                            );
+                            
+                            // If not found, search nearby (within 1 block in each direction)
+                            if (!foundBlock) {
+                                for (let dx = -1; dx <= 1 && !foundBlock; dx++) {
+                                    for (let dy = -1; dy <= 1 && !foundBlock; dy++) {
+                                        for (let dz = -1; dz <= 1 && !foundBlock; dz++) {
+                                            foundBlock = userData.chunkData.data.find(block => 
+                                                block.x === blockX + dx && 
+                                                block.y === blockY + dy && 
+                                                block.z === blockZ + dz
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (foundBlock && foundBlock.name) {
+                                blockName = foundBlock.name;
+                                // Format: "minecraft:stone" -> "Stone" or keep as-is if format is unexpected
+                                if (blockName.includes(':')) {
+                                    const parts = blockName.split(':');
+                                    const namePart = parts[parts.length - 1];
+                                    // Capitalize first letter of each word
+                                    blockName = namePart.split('_').map(word => 
+                                        word.charAt(0).toUpperCase() + word.slice(1)
+                                    ).join(' ');
+                                }
+                                // Use the actual block coordinates from the found block
+                                const actualX = foundBlock.x;
+                                const actualY = foundBlock.y;
+                                const actualZ = foundBlock.z;
+                                hoverTitle.textContent = blockName;
+                                
+                                // Format timestamp for display
+                                let timestampText = '';
+                                if (foundBlock.updatedAt) {
+                                    const date = new Date(foundBlock.updatedAt);
+                                    const now = Date.now();
+                                    const diffMs = now - foundBlock.updatedAt;
+                                    const diffSec = Math.floor(diffMs / 1000);
+                                    const diffMin = Math.floor(diffSec / 60);
+                                    const diffHour = Math.floor(diffMin / 60);
+                                    const diffDay = Math.floor(diffHour / 24);
+                                    
+                                    if (diffDay > 0) {
+                                        timestampText = `Scanned ${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+                                    } else if (diffHour > 0) {
+                                        timestampText = `Scanned ${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+                                    } else if (diffMin > 0) {
+                                        timestampText = `Scanned ${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+                                    } else {
+                                        timestampText = `Scanned ${diffSec} second${diffSec !== 1 ? 's' : ''} ago`;
+                                    }
+                                    timestampText += ` (${date.toLocaleString()})`;
+                                }
+                                
+                                hoverDetail.textContent = `Position: ${actualX}, ${actualY}, ${actualZ}${timestampText ? '\n' + timestampText : ''}`;
+                            } else {
+                                hoverTitle.textContent = 'Block';
+                                hoverDetail.textContent = `Position: ${blockX}, ${blockY}, ${blockZ}`;
+                            }
+                        } else {
+                            hoverTitle.textContent = 'Block';
+                            hoverDetail.textContent = `Position: ${blockX}, ${blockY}, ${blockZ}`;
+                        }
+                        hoverInfo.classList.add('visible');
+                        hoveredObject = intersect.object;
+                    }
+                } else {
+                    hoverInfo.classList.remove('visible');
+                    hoveredObject = null;
+                }
+            }
+            
+            // Handle click to select machine
+            function handleClick(event) {
+                const rect = container.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Only check machine meshes for clicking
+                const machineObjects = [];
+                machineMeshes.forEach((meshGroup, id) => {
+                    meshGroup.children.forEach(child => {
+                        if (child instanceof THREE.Mesh) {
+                            child.userData = { type: 'machine', machineId: id };
+                            machineObjects.push(child);
+                        }
+                    });
+                });
+                
+                const intersects = raycaster.intersectObjects(machineObjects);
+                
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    const userData = intersect.object.userData;
+                    if (userData.type === 'machine') {
+                        selectMachine(userData.machineId);
+                    }
+                }
+            }
+
+            // Handle right-click to move android
+            function handleRightClick(event) {
+                // Only handle if an android is selected
+                if (!selectedMachineId) return;
+                const machine = machines.get(selectedMachineId);
+                if (!machine || machine.type !== 'android') return;
+
+                const rect = container.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Collect all block meshes for intersection
+                const blockObjects = [];
+                chunkMeshes.forEach((chunkGroup) => {
+                    if (chunkGroup instanceof THREE.Group) {
+                        chunkGroup.children.forEach(child => {
+                            if (child instanceof THREE.Mesh) {
+                                blockObjects.push(child);
+                            }
+                        });
+                    }
+                });
+                
+                const intersects = raycaster.intersectObjects(blockObjects);
+                
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    const point = intersect.point;
+                    // Move slightly along the normal to get the block center
+                    const normal = intersect.face.normal.clone();
+                    const adjustedPoint = point.clone().add(normal.multiplyScalar(0.1));
+                    
+                    // Get block coordinates (floor to get integer coordinates)
+                    const targetX = Math.floor(adjustedPoint.x);
+                    const targetY = Math.floor(adjustedPoint.y);
+                    const targetZ = Math.floor(adjustedPoint.z);
+                    
+                    // Send moveTo command
+                    window.sendCommandToMachine(selectedMachineId, 'moveTo', {
+                        x: targetX,
+                        y: targetY,
+                        z: targetZ
+                    });
+                }
+            }
+            
+            // Start render loop
+            function animate() {
+                requestAnimationFrame(animate);
+                updateMachineMeshPositions(); // Update positions with interpolation
+                updateCamera();
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        
+        // Request chunk data from server
+        function requestChunk(dimension, x, z) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            const chunkKey = `${dimension},${x},${z}`;
+            console.log('Requesting chunk:', chunkKey);
+            ws.send(JSON.stringify({
+                type: 'chunk_request',
+                dimension: dimension,
+                center: { x: x, z: z },
+                radius: 0
+            }));
+        }
+        
+        // Request chunks in radius (for loading all stored chunks)
+        function requestChunksInRadius(dimension, centerX, centerZ, radius) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            console.log('Requesting chunks in radius:', dimension, centerX, centerZ, radius);
+            ws.send(JSON.stringify({
+                type: 'chunk_request',
+                dimension: dimension,
+                center: { x: centerX, z: centerZ },
+                radius: radius
+            }));
+        }
+
+        // Load block texture from server (textures are stored in textures/ folder)
+        // If texture file doesn't exist, server will generate a blank one
+        function getBlockTexture(blockName) {
+            if (!blockName) blockName = 'unknown';
+            
+            if (!blockTextures.has(blockName)) {
+                // Sanitize block name for filename (replace : with _ and / with _)
+                const textureFileName = blockName.replace(/:/g, '_').replace(/\//g, '_') + '.png';
+                const textureUrl = `http://localhost:8081/textures/${textureFileName}`;
+                
+                // Create texture loader
+                const loader = new THREE.TextureLoader();
+                const texture = loader.load(
+                    textureUrl,
+                    // onLoad callback
+                    () => {
+                        texture.magFilter = THREE.NearestFilter;
+                        texture.minFilter = THREE.NearestFilter;
+                        texture.name = blockName;
+                    },
+                    // onProgress callback (optional)
+                    undefined,
+                    // onError callback - fallback to canvas-generated texture
+                    () => {
+                        console.warn('Failed to load texture for', blockName, '- using fallback');
+                        // Create fallback texture from canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 16;
+                        canvas.height = 16;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#888888';
+                        ctx.fillRect(0, 0, 16, 16);
+                        ctx.strokeStyle = '#666666';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(0.5, 0.5, 15, 15);
+                        const fallbackTexture = new THREE.CanvasTexture(canvas);
+                        fallbackTexture.magFilter = THREE.NearestFilter;
+                        fallbackTexture.minFilter = THREE.NearestFilter;
+                        fallbackTexture.name = blockName;
+                        blockTextures.set(blockName, fallbackTexture);
+                    }
+                );
+                
+                texture.magFilter = THREE.NearestFilter;
+                texture.minFilter = THREE.NearestFilter;
+                texture.name = blockName;
+                blockTextures.set(blockName, texture);
+            }
+            return blockTextures.get(blockName);
+        }
+
+        // Helper function to check if a block is a machine block (turtle, computer, etc.)
+        function isMachineBlock(blockName) {
+            if (!blockName || typeof blockName !== 'string') {
+                return false;
+            }
+            const name = blockName.toLowerCase();
+            // Filter out ComputerCraft blocks (turtles, computers, monitors, etc.)
+            if (name.includes('computercraft:') || name.includes('cctweaked:') || name.includes('cc_androids:')) {
+                return true;
+            }
+            return false;
+        }
+        
+        // Helper function to check if a block position matches a machine position
+        function isMachinePosition(x, y, z) {
+            // Check if any machine is at this position (using integer coordinates)
+            for (const machine of machines.values()) {
+                const pos = machine.position || machine.status?.position;
+                if (pos && typeof pos === 'object' && pos !== 'unknown') {
+                    const mx = Math.floor(pos.x);
+                    const my = Math.floor(pos.y);
+                    const mz = Math.floor(pos.z);
+                    if (mx === x && my === y && mz === z) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // Greedy meshing algorithm - merges adjacent faces of the same block type
+        function greedyMesh(chunkData, chunkX, chunkZ) {
+            const blocks = chunkData.data || [];
+            console.log('greedyMesh called with blocks:', blocks.length, 'chunkData:', chunkData);
+            // Return null only if data doesn't exist or isn't an array, but allow empty arrays (will just return null geometry which is fine)
+            if (!Array.isArray(blocks)) {
+                console.log('chunkData.data is not an array');
+                return null;
+            }
+            
+            // Filter out machine blocks and blocks at machine positions
+            const filteredBlocks = blocks.filter(block => {
+                if (!block || block.x === undefined || block.y === undefined || block.z === undefined) {
+                    return false;
+                }
+                // Filter out machine blocks by name
+                if (isMachineBlock(block.name)) {
+                    return false;
+                }
+                // Filter out blocks at machine positions
+                if (isMachinePosition(block.x, block.y, block.z)) {
+                    return false;
+                }
+                return true;
+            });
+            
+            if (filteredBlocks.length === 0) {
+                console.log('No blocks in chunk data after filtering (empty array)');
+                return null;
+            }
+            
+            // Build a block map: "x,y,z" -> block name
+            const blockMap = new Map();
+            filteredBlocks.forEach(block => {
+                if (block.x !== undefined && block.y !== undefined && block.z !== undefined) {
+                    const key = `${block.x},${block.y},${block.z}`;
+                    blockMap.set(key, block.name || 'unknown');
+                }
+            });
+            
+            // Helper to check if block exists at position
+            const hasBlock = (x, y, z) => blockMap.has(`${x},${y},${z}`);
+            
+            // Get visible faces (faces with no adjacent block)
+            const visibleFaces = [];
+            filteredBlocks.forEach(block => {
+                const { x, y, z, name } = block;
+                
+                const directions = [
+                    { dir: 'up', dx: 0, dy: 1, dz: 0 },
+                    { dir: 'down', dx: 0, dy: -1, dz: 0 },
+                    { dir: 'north', dx: 0, dy: 0, dz: -1 },
+                    { dir: 'south', dx: 0, dy: 0, dz: 1 },
+                    { dir: 'east', dx: 1, dy: 0, dz: 0 },
+                    { dir: 'west', dx: -1, dy: 0, dz: 0 }
+                ];
+                
+                directions.forEach(({ dir, dx, dy, dz }) => {
+                    if (!hasBlock(x + dx, y + dy, z + dz)) {
+                        visibleFaces.push({ x, y, z, name, direction: dir });
+                    }
+                });
+            });
+            
+            // Group faces by block type and direction for greedy meshing
+            // Use '|' as separator since block names contain ':'
+            const faceGroups = new Map();
+            visibleFaces.forEach(face => {
+                const key = `${face.name}|${face.direction}`;
+                if (!faceGroups.has(key)) {
+                    faceGroups.set(key, []);
+                }
+                faceGroups.get(key).push(face);
+            });
+            
+            // Group by block type (for per-block textures)
+            const blockTypeGroups = new Map();
+            faceGroups.forEach((faces, groupKey) => {
+                const lastPipeIndex = groupKey.lastIndexOf('|');
+                const blockName = groupKey.substring(0, lastPipeIndex);
+                const direction = groupKey.substring(lastPipeIndex + 1);
+                
+                if (!blockTypeGroups.has(blockName)) {
+                    blockTypeGroups.set(blockName, []);
+                }
+                blockTypeGroups.get(blockName).push({ faces, direction });
+            });
+            
+            // Create geometry for each block type
+            const geometries = [];
+            blockTypeGroups.forEach((directionGroups, blockName) => {
+                const positions = [];
+                const normals = [];
+                const uvs = [];
+                const indices = [];
+                let vertexOffset = 0;
+                
+                directionGroups.forEach(({ faces, direction }) => {
+                    // Simple greedy meshing: create quads for each face (can be optimized to merge adjacent quads)
+                    faces.forEach(face => {
+                        const { x, y, z } = face;
+                        let v0, v1, v2, v3, normal;
+                        
+                        switch (direction) {
+                            case 'up':
+                                v0 = [x, y + 1, z]; v1 = [x + 1, y + 1, z];
+                                v2 = [x + 1, y + 1, z + 1]; v3 = [x, y + 1, z + 1];
+                                normal = [0, 1, 0];
+                                break;
+                            case 'down':
+                                v0 = [x, y, z + 1]; v1 = [x + 1, y, z + 1];
+                                v2 = [x + 1, y, z]; v3 = [x, y, z];
+                                normal = [0, -1, 0];
+                                break;
+                            case 'north':
+                                v0 = [x, y, z]; v1 = [x, y + 1, z];
+                                v2 = [x + 1, y + 1, z]; v3 = [x + 1, y, z];
+                                normal = [0, 0, -1];
+                                break;
+                            case 'south':
+                                v0 = [x + 1, y, z + 1]; v1 = [x + 1, y + 1, z + 1];
+                                v2 = [x, y + 1, z + 1]; v3 = [x, y, z + 1];
+                                normal = [0, 0, 1];
+                                break;
+                            case 'east':
+                                v0 = [x + 1, y, z + 1]; v1 = [x + 1, y + 1, z + 1];
+                                v2 = [x + 1, y + 1, z]; v3 = [x + 1, y, z];
+                                normal = [1, 0, 0];
+                                break;
+                            case 'west':
+                                v0 = [x, y, z]; v1 = [x, y + 1, z];
+                                v2 = [x, y + 1, z + 1]; v3 = [x, y, z + 1];
+                                normal = [-1, 0, 0];
+                                break;
+                        }
+                        
+                        // Add vertices
+                        positions.push(...v0, ...v1, ...v2, ...v3);
+                        normals.push(...normal, ...normal, ...normal, ...normal);
+                        uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
+                        
+                        // Add indices for two triangles (counter-clockwise winding for front faces)
+                        // Ensure proper winding order: when viewed from outside, vertices should be counter-clockwise
+                        indices.push(
+                            vertexOffset, vertexOffset + 1, vertexOffset + 2,
+                            vertexOffset, vertexOffset + 2, vertexOffset + 3
+                        );
+                        
+                        vertexOffset += 4;
+                    });
+                });
+                
+                if (positions.length > 0) {
+                    // Create geometry for this block type
+                    const geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+                    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                    geometry.setIndex(indices);
+                    geometries.push({ geometry, blockName });
+                }
+            });
+            
+            if (geometries.length === 0) {
+                console.log('No geometries generated in greedyMesh');
+                return null;
+            }
+            
+            return geometries;
+        }
+
+        // Update chunk mesh
+        function updateChunkMesh(chunk) {
+            const chunkKey = `${chunk.dimension || 'overworld'},${chunk.x},${chunk.z}`;
+            console.log('updateChunkMesh called for:', chunkKey);
+            
+            // Remove old mesh/group if it exists
+            if (chunkMeshes.has(chunkKey)) {
+                const oldGroup = chunkMeshes.get(chunkKey);
+                // Dispose of all meshes in the group
+                oldGroup.traverse((child) => {
+                    if (child instanceof THREE.Mesh) {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (child.material.map) child.material.map.dispose();
+                            child.material.dispose();
+                        }
+                    }
+                });
+                scene.remove(oldGroup);
+                chunkMeshes.delete(chunkKey);
+            }
+            
+            // Create new mesh using greedy meshing (returns array of {geometry, blockName} per block type)
+            const geometries = greedyMesh(chunk, chunk.x, chunk.z);
+            if (!geometries || geometries.length === 0) {
+                console.log('greedyMesh returned null/empty for chunk:', chunkKey, '- chunk has', chunk.data?.length || 0, 'blocks');
+                // Don't return early - chunks with no blocks are valid, we just don't render them
+                return;
+            }
+            
+            // Create a group to hold all meshes for this chunk
+            const chunkGroup = new THREE.Group();
+            
+            // Create a separate mesh for each block type with its own texture
+            geometries.forEach(({ geometry, blockName }) => {
+                console.log('Creating mesh for block type:', blockName, 'vertices:', geometry.attributes.position.count);
+                
+                // Get texture for this specific block type
+                const texture = getBlockTexture(blockName);
+                const material = new THREE.MeshStandardMaterial({ 
+                    map: texture,
+                    side: THREE.DoubleSide  // Render both sides of faces to prevent invisible faces
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                // Position mesh at chunk origin (vertices are already in world coordinates)
+                mesh.position.set(0, 0, 0);
+                
+                // Store block type and chunk data in userData for reference (used by hover detection)
+                mesh.userData.blockName = blockName;
+                mesh.userData.chunkData = chunk; // Store chunk data on each mesh for hover detection
+                mesh.userData.type = 'block';
+                
+                chunkGroup.add(mesh);
+            });
+            
+            // Store chunk data reference in userData for block name lookup
+            chunkGroup.userData.chunkKey = chunkKey;
+            chunkGroup.userData.chunkData = chunk;
+            
+            scene.add(chunkGroup);
+            chunkMeshes.set(chunkKey, chunkGroup);
+            console.log('Chunk group added to scene:', chunkKey, 'contains', geometries.length, 'block type(s)');
+        }
+
+        // Get facing direction as rotation in radians (for Z rotation after X rotation)
+        function getFacingRotation(facing) {
+            if (!facing || facing === 'unknown') return 0;
+            const facingMap = {
+                'north': 0,            // Pointing north (negative Z in Minecraft)
+                'south': Math.PI,      // Pointing south (positive Z)
+                'east': -Math.PI / 2,  // Pointing east (positive X)
+                'west': Math.PI / 2    // Pointing west (negative X)
+            };
+            return facingMap[facing.toLowerCase()] || 0;
+        }
+
+        // Update machine mesh positions with interpolation for smooth movement
+        function updateMachineMeshPositions() {
+            const currentTime = performance.now();
+            
+            machineMeshes.forEach((meshGroup, id) => {
+                const machine = machines.get(id);
+                if (!machine) return;
+                
+                const entity = entities.get(id);
+                const position = entity?.position || machine.status?.position;
+                
+                if (position && position !== 'unknown' && typeof position === 'object') {
+                    // Check if this machine has live mode enabled for interpolation
+                    const isLive = machine.liveMode;
+                    
+                    if (isLive) {
+                        // Use interpolated position for smooth movement
+                        const interpolatedPos = getInterpolatedPosition(id, currentTime);
+                        if (interpolatedPos) {
+                            if (machine.type === 'android') {
+                                meshGroup.position.set(interpolatedPos.x, interpolatedPos.y - 1, interpolatedPos.z);
+                            } else {
+                                meshGroup.position.set(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z);
+                            }
+                        } else {
+                            // Fallback to exact position if interpolation fails
+                            if (machine.type === 'android') {
+                                meshGroup.position.set(position.x, position.y - 1, position.z);
+                            } else {
+                                meshGroup.position.set(position.x, position.y, position.z);
+                            }
+                        }
+                    } else {
+                        // Use exact position for non-live machines
+                        if (machine.type === 'android') {
+                            meshGroup.position.set(position.x, position.y - 1, position.z);
+                        } else {
+                            meshGroup.position.set(position.x, position.y, position.z);
+                        }
+                    }
+                }
+            });
+            
+            // Update selection indicator position if a machine is selected
+            if (selectedMachineId && selectionMesh) {
+                const selectedGroup = machineMeshes.get(selectedMachineId);
+                if (selectedGroup) {
+                    const cubeCenter = selectedGroup.position.clone();
+                    if (selectedGroup.children.length > 0) {
+                        const cubeMesh = selectedGroup.children[0];
+                        cubeCenter.add(cubeMesh.position);
+                    }
+                    selectionMesh.position.copy(cubeCenter);
+                }
+            }
+        }
+        
+        // Create/update machine meshes in 3D scene
+        function updateMachineMeshes() {
+            // Remove old meshes (but keep selection mesh)
+            machineMeshes.forEach((meshGroup) => {
+                scene.remove(meshGroup);
+            });
+            machineMeshes.clear();
+            
+            // Create meshes for each machine with position
+            machines.forEach((machine, id) => {
+                const entity = entities.get(id);
+                const position = entity?.position || machine.status?.position;
+                
+                if (position && position !== 'unknown' && typeof position === 'object') {
+                    // Create a group to hold the cube and arrow
+                    const group = new THREE.Group();
+                    
+                    // Create a cube to represent the machine
+                    // BoxGeometry creates a cube from (-0.5, -0.5, -0.5) to (0.5, 0.5, 0.5)
+                    // To align with block grid (blocks go from (x,y,z) to (x+1,y+1,z+1)), 
+                    // we offset the cube by 0.5 so its corner is at the position
+                    let geometry;
+                    if (machine.type === 'android') {
+                        geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6); // Player-like proportions
+                    } else {
+                        geometry = new THREE.BoxGeometry(1, 1, 1);
+                    }
+                    
+                    // Color based on type (support dynamic types)
+                    let color = 0x888888;
+                    if (machine.type === 'computer') color = 0x2196f3;
+                    else if (machine.type === 'android') color = 0xff5722; // Deep orange for android
+                    else if (machine.type && machine.type.endsWith('_turtle')) {
+                        // Dynamic turtle types - use color based on modifiers
+                        if (machine.type.includes('mining')) color = 0x4caf50;
+                        else if (machine.type.includes('chatty')) color = 0x9c27b0;
+                        else if (machine.type.includes('wireless')) color = 0x9c27b0; // Purple for wireless
+                        else color = 0xff9800; // Default orange for basic turtle
+                    }
+                    
+                    const material = new THREE.MeshStandardMaterial({ color: color });
+                    const cubeMesh = new THREE.Mesh(geometry, material);
+                    if (machine.type === 'android') {
+                        // Androids: position so feet are at y=0 (group position y coordinate)
+                        // Android is 0.6 wide (from -0.3 to 0.3) and 1.8 tall (from -0.9 to 0.9)
+                        // Position mesh so bottom is at y=0 in group space
+                        cubeMesh.position.set(0.3, 0.9, 0.3); // Center at (0.3, 0.9, 0.3) so bottom is at y=0
+                    } else {
+                        cubeMesh.position.set(0.5, 0.5, 0.5); // Offset so corner aligns with block grid
+                    }
+                    group.add(cubeMesh);
+                    
+                    // Add facing direction indicator for turtles
+                    const facing = entity?.facing || machine.status?.facing;
+                    const isTurtle = machine.type && (machine.type === 'turtle' || machine.type.endsWith('_turtle'));
+                    if (isTurtle && facing && facing !== 'unknown') {
+                        // Create an arrow pointing in the facing direction
+                        // Cube is BoxGeometry(1,1,1) centered at origin, offset by (0.5,0.5,0.5)
+                        // So cube extends from (0,0,0) to (1,1,1) in group space, top is at y=1.0
+                        // Cone height is 0.8, we want half (0.4) above the cube top
+                        // Cone center should be at 1.0 + 0.4 = 1.4 (so 0.4 sticks out, 0.4 is inside)
+                        const arrowGeometry = new THREE.ConeGeometry(0.2, 0.8, 8);
+                        const arrowMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                        const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                        arrow.position.set(0.5, 1.4, 0.5); // Center at cube center (x,z) and at 1.4 (y) so half sticks out
+                        // Rotate cone to point horizontally (cone normally points up along Y axis)
+                        arrow.rotation.x = -Math.PI / 2; // Rotate 90 degrees to point forward (north/-Z)
+                        // Rotate around Z axis based on facing direction
+                        const facingRotation = getFacingRotation(facing);
+                        arrow.rotation.z = facingRotation; // Rotate in the facing direction
+                        group.add(arrow);
+                    }
+                    
+                    // Position at block coordinates (blocks align by corner, not center)
+                    // For androids, adjust Y position down by 1 block since they're rendered 1 block too high
+                    if (machine.type === 'android') {
+                        group.position.set(position.x, position.y - 1, position.z);
+                    } else {
+                        group.position.set(position.x, position.y, position.z);
+                    }
+                    scene.add(group);
+                    machineMeshes.set(id, group);
+                }
+            });
+            
+            // Update selection indicator
+            updateSelectionIndicator();
+        }
+        
+        // Update selection indicator
+        function updateSelectionIndicator() {
+            // Remove old selection indicator
+            if (selectionMesh) {
+                scene.remove(selectionMesh);
+                selectionMesh = null;
+            }
+            
+            // Add new selection indicator if a machine is selected
+            if (selectedMachineId) {
+                const machineGroup = machineMeshes.get(selectedMachineId);
+                const machine = machines.get(selectedMachineId);
+                if (machineGroup && machine) {
+                    // Create a red wireframe cube (edges only, no diagonals) slightly bigger than the machine
+                    let boxGeometry;
+                    let cubeCenter;
+                    if (machine.type === 'android') {
+                        // Android: 0.6x1.8x0.6, make selection box 1.1x bigger
+                        boxGeometry = new THREE.BoxGeometry(0.66, 1.98, 0.66);
+                        // Android mesh is centered at (0.3, 0.9, 0.3) in group space (feet at y=0)
+                        cubeCenter = machineGroup.position.clone().add(new THREE.Vector3(0.3, 0.9, 0.3));
+                    } else {
+                        // Turtle/computer: 1x1x1, make selection box 1.1x bigger
+                        boxGeometry = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+                        // Cube is offset by (0.5, 0.5, 0.5), so its center is at (x+0.5, y+0.5, z+0.5)
+                        cubeCenter = machineGroup.position.clone().add(new THREE.Vector3(0.5, 0.5, 0.5));
+                    }
+                    const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
+                    const material = new THREE.LineBasicMaterial({ 
+                        color: 0xff0000,
+                        linewidth: 2
+                    });
+                    selectionMesh = new THREE.LineSegments(edgesGeometry, material);
+                    selectionMesh.position.copy(cubeCenter);
+                    scene.add(selectionMesh);
+                }
+            }
+            
+            // Also update turtle controls when selection indicator updates
+            updateTurtleControls();
+        }
+        
+        // Center camera on machine
+        function centerCameraOnMachine(machineId) {
+            const machineGroup = machineMeshes.get(machineId);
+            if (!machineGroup) return;
+            
+            const targetPosition = machineGroup.position.clone();
+            
+            // Calculate a good distance based on the scene bounds
+            // Use a fixed distance that ensures the machine is visible
+            const distance = 15;
+            
+            // Position camera at an offset from the target
+            // Use a diagonal offset to get a nice 3/4 view
+            const offset = new THREE.Vector3(distance * 0.7, distance * 0.7, distance * 0.7);
+            cameraPosition.x = targetPosition.x + offset.x;
+            cameraPosition.y = targetPosition.y + offset.y;
+            cameraPosition.z = targetPosition.z + offset.z;
+            
+            // Simply use lookAt - it's more reliable than calculating rotations manually
+            camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+            camera.lookAt(targetPosition.x, targetPosition.y, targetPosition.z);
+            
+            // Now extract the rotation from the camera
+            // Get the look direction
+            const lookDirection = new THREE.Vector3();
+            camera.getWorldDirection(lookDirection);
+            lookDirection.multiplyScalar(-1); // Reverse to get direction FROM camera TO target
+            
+            // Calculate rotation angles from the look direction
+            // updateCamera uses: lookAt = position + (sin(y)*cos(x), -sin(x), -cos(y)*cos(x))
+            // So direction = (sin(y)*cos(x), -sin(x), -cos(y)*cos(x))
+            cameraRotation.x = -Math.asin(lookDirection.y);
+            cameraRotation.y = Math.atan2(-lookDirection.x, -lookDirection.z);
+        }
+
+        // Update background color based on game time
+        // Time range: 0-23999 ticks
+        // 0 = sunrise (6 AM), 6000 = noon (12 PM), 12000 = sunset (6 PM), 18000 = midnight (12 AM)
+        function updateBackgroundColor(time) {
+            if (time === null || time === undefined) return;
+            
+            let color;
+            const normalizedTime = time % 24000; // Ensure it's in 0-23999 range
+            
+            if (normalizedTime < 6000) {
+                // 0-6000: Sunrise to noon (6 AM - 12 PM) - Light blue to bright blue
+                const t = normalizedTime / 6000; // 0 to 1
+                color = new THREE.Color().lerpColors(
+                    new THREE.Color(0x87ceeb), // Light sky blue (sunrise)
+                    new THREE.Color(0x4fc3f7), // Bright blue (noon)
+                    t
+                );
+            } else if (normalizedTime < 12000) {
+                // 6000-12000: Noon to sunset (12 PM - 6 PM) - Bright blue to orange
+                const t = (normalizedTime - 6000) / 6000; // 0 to 1
+                color = new THREE.Color().lerpColors(
+                    new THREE.Color(0x4fc3f7), // Bright blue (noon)
+                    new THREE.Color(0xff7043), // Orange (sunset)
+                    t
+                );
+            } else if (normalizedTime < 18000) {
+                // 12000-18000: Sunset to midnight (6 PM - 12 AM) - Orange to dark purple
+                const t = (normalizedTime - 12000) / 6000; // 0 to 1
+                color = new THREE.Color().lerpColors(
+                    new THREE.Color(0xff7043), // Orange (sunset)
+                    new THREE.Color(0x1a237e), // Dark blue/purple (midnight)
+                    t
+                );
+            } else {
+                // 18000-24000: Midnight to sunrise (12 AM - 6 AM) - Dark to light blue
+                const t = (normalizedTime - 18000) / 6000; // 0 to 1
+                color = new THREE.Color().lerpColors(
+                    new THREE.Color(0x1a237e), // Dark blue/purple (midnight)
+                    new THREE.Color(0x87ceeb), // Light sky blue (sunrise)
+                    t
+                );
+            }
+            
+            scene.background.copy(color);
+        }
+        
+        // Poll for game time from connected machines
+        function pollGameTime() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            // Find a random connected machine to poll
+            const machineIds = Array.from(machines.keys());
+            if (machineIds.length > 0) {
+                // Time is already included in status updates, so we just need to ensure
+                // we're getting regular status updates. The status updates already include time.
+                // If no time is available, we could request a status update, but for now
+                // we'll just rely on the regular status broadcasts.
+            }
+        }
+        
+        // WebSocket connection
+        function connect() {
+            try {
+                ws = new WebSocket(WS_URL);
+                
+                ws.onopen = () => {
+                    console.log('Connected to server');
+                    updateStatus(true);
+                    
+                    // Start polling for game time every 10 seconds
+                    if (timePollInterval) clearInterval(timePollInterval);
+                    timePollInterval = setInterval(pollGameTime, 10000);
+                };
+                
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    handleMessage(msg);
+                };
+                
+                ws.onclose = () => {
+                    console.log('Disconnected from server');
+                    updateStatus(false);
+                    if (timePollInterval) {
+                        clearInterval(timePollInterval);
+                        timePollInterval = null;
+                    }
+                    // Attempt to reconnect after 3 seconds
+                    setTimeout(connect, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    updateStatus(false);
+                    if (timePollInterval) {
+                        clearInterval(timePollInterval);
+                        timePollInterval = null;
+                    }
+                };
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                updateStatus(false);
+                setTimeout(connect, 3000);
+            }
+        }
+
+        function updateStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusDot.classList.remove('disconnected');
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.classList.remove('connected');
+                statusDot.classList.add('disconnected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'full_state':
+                    machines.clear();
+                    entities.clear();
+                    machinePositionHistory.clear(); // Clear position history on full state sync
+                    
+                    // Store machines
+                    if (msg.machines) {
+                        msg.machines.forEach(m => {
+                            machines.set(m.id, m);
+                            
+                            // Restore live mode intervals for machines that have liveMode enabled (not just androids)
+                            if (m.liveMode && !androidLiveIntervals.has(m.id)) {
+                                let frequency = m.liveFrequency || 8;
+                                // Clamp to 19Hz max
+                                if (frequency > 19) {
+                                    frequency = 19;
+                                }
+                                const intervalMs = 1000 / frequency;
+                                const intervalId = setInterval(() => {
+                                    window.sendCommandToMachine(m.id, 'update', {});
+                                }, intervalMs);
+                                androidLiveIntervals.set(m.id, intervalId);
+                                androidUpdateFrequencies.set(m.id, m.liveFrequency || 8); // Store UI value
+                                console.log('Restored live mode for machine:', m.id, 'at', frequency, 'Hz (clamped)');
+                            }
+                        });
+                    }
+                    
+                    // Store entities and initialize position history
+                    if (msg.entities) {
+                        const currentTime = performance.now();
+                        msg.entities.forEach(e => {
+                            entities.set(e.id, e);
+                            // Initialize position history for interpolation
+                            if (e.position && typeof e.position === 'object') {
+                                interpolatePosition(e.id, e.position, currentTime);
+                            }
+                        });
+                    }
+                    
+                    updateMachineList();
+                    
+                    // Extract game time from first available machine
+                    if (msg.machines && msg.machines.length > 0) {
+                        for (const m of msg.machines) {
+                            // Check both msg.machines status and stored machines status
+                            const storedMachine = machines.get(m.id);
+                            const status = m.status || (storedMachine && storedMachine.status);
+                            if (status && status.time !== undefined && status.time !== null) {
+                                gameTime = status.time;
+                                updateBackgroundColor(gameTime);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Request chunks for all entities with positions
+                    // Use a very large radius to load ALL stored chunks around entities
+                    const requestedCenters = new Set();
+                    entities.forEach((entity, id) => {
+                        if (entity.position && typeof entity.position === 'object') {
+                            const chunkX = Math.floor(entity.position.x / 16);
+                            const chunkZ = Math.floor(entity.position.z / 16);
+                            const key = `${chunkX},${chunkZ}`;
+                            if (!requestedCenters.has(key)) {
+                                requestedCenters.add(key);
+                                // Request with very large radius (50 = 101x101 chunks = covers a huge area)
+                                // This ensures we load ALL stored chunks near any entity
+                                requestChunksInRadius('overworld', chunkX, chunkZ, 50);
+                            }
+                        }
+                    });
+                    break;
+                    
+                case 'state_update':
+                    // Update entities
+                    if (msg.entities) {
+                        const currentTime = performance.now();
+                        // Check for new entities with positions that we haven't requested chunks for yet
+                        const newEntities = [];
+                        msg.entities.forEach(e => {
+                            if (!entities.has(e.id) && e.position && typeof e.position === 'object') {
+                                newEntities.push(e);
+                            }
+                            // Update position history for interpolation when position changes
+                            const existingEntity = entities.get(e.id);
+                            if (e.position && typeof e.position === 'object') {
+                                if (!existingEntity || 
+                                    !existingEntity.position ||
+                                    existingEntity.position.x !== e.position.x ||
+                                    existingEntity.position.y !== e.position.y ||
+                                    existingEntity.position.z !== e.position.z) {
+                                    interpolatePosition(e.id, e.position, currentTime);
+                                }
+                            }
+                            entities.set(e.id, e);
+                        });
+                        
+                        // Request chunks for any new entities
+                        newEntities.forEach(entity => {
+                            const chunkX = Math.floor(entity.position.x / 16);
+                            const chunkZ = Math.floor(entity.position.z / 16);
+                            // Request with large radius to get all nearby stored chunks
+                            requestChunksInRadius('overworld', chunkX, chunkZ, 50);
+                        });
+                    }
+                    
+                    // Update machines if provided
+                    if (msg.machines) {
+                        // Track which machines were in the update and if any were added
+                        const updatedMachineIds = new Set();
+                        let hadNewMachines = false;
+                        msg.machines.forEach(m => {
+                            updatedMachineIds.add(m.id);
+                            const existingMachine = machines.get(m.id);
+                            const isNewMachine = !existingMachine;
+                            
+                            // Merge status if machine already exists
+                            if (existingMachine && existingMachine.status && m.status) {
+                                existingMachine.status = { ...existingMachine.status, ...m.status };
+                            // Also merge liveMode and liveFrequency
+                            existingMachine.liveMode = m.liveMode !== undefined ? m.liveMode : (existingMachine.liveMode || false);
+                            existingMachine.liveFrequency = m.liveFrequency !== undefined ? m.liveFrequency : (existingMachine.liveFrequency || 8);
+                            machines.set(m.id, existingMachine);
+                            
+                            // Restore live mode interval if server says it should be enabled
+                            if (existingMachine.liveMode && !androidLiveIntervals.has(m.id)) {
+                                let frequency = existingMachine.liveFrequency || 8;
+                                // Clamp to 19Hz max
+                                if (frequency > 19) {
+                                    frequency = 19;
+                                }
+                                const intervalMs = 1000 / frequency;
+                                const intervalId = setInterval(() => {
+                                    window.sendCommandToMachine(m.id, 'update', {});
+                                }, intervalMs);
+                                androidLiveIntervals.set(m.id, intervalId);
+                                console.log('Restored live mode for machine:', m.id, 'at', frequency, 'Hz (clamped)');
+                            } else if (!existingMachine.liveMode && androidLiveIntervals.has(m.id)) {
+                                // Stop live mode if server says it should be disabled
+                                clearInterval(androidLiveIntervals.get(m.id));
+                                androidLiveIntervals.delete(m.id);
+                                console.log('Stopped live mode for machine:', m.id);
+                            }
+                        } else {
+                            machines.set(m.id, m);
+                            hadNewMachines = true;
+                            
+                            // Restore live mode interval for new machines
+                            if (m.liveMode && !androidLiveIntervals.has(m.id)) {
+                                const frequency = m.liveFrequency || 8;
+                                const intervalMs = 1000 / frequency;
+                                const intervalId = setInterval(() => {
+                                    window.sendCommandToMachine(m.id, 'update', {});
+                                }, intervalMs);
+                                androidLiveIntervals.set(m.id, intervalId);
+                                androidUpdateFrequencies.set(m.id, frequency);
+                                console.log('Restored live mode for android:', m.id, 'at', frequency, 'Hz');
+                            }
+                        }
+                            
+                            // Update game time if available (check both m.status and merged status)
+                            const status = m.status || (existingMachine && existingMachine.status);
+                            if (status && status.time !== undefined && status.time !== null) {
+                                gameTime = status.time;
+                                updateBackgroundColor(gameTime);
+                            }
+                        });
+                        
+                        // Remove machines that are no longer in the state
+                        const machinesToRemove = [];
+                        machines.forEach((machine, id) => {
+                            if (!updatedMachineIds.has(id)) {
+                                machinesToRemove.push(id);
+                            }
+                        });
+                        const hadMachinesRemoved = machinesToRemove.length > 0;
+                        machinesToRemove.forEach(id => {
+                            machines.delete(id);
+                            entities.delete(id);
+                            // Clear selection if disconnected machine was selected
+                            if (selectedMachineId === id) {
+                                selectedMachineId = null;
+                            }
+                            // Clear live interval if machine disconnects
+                            if (androidLiveIntervals.has(id)) {
+                                clearInterval(androidLiveIntervals.get(id));
+                                androidLiveIntervals.delete(id);
+                            }
+                        });
+                        
+                        // Only update list if machines were added or removed
+                        if (hadMachinesRemoved || hadNewMachines) {
+                            updateMachineList();
+                        }
+                    }
+                    
+                    // Handle chunk update
+                    if (msg.world && msg.chunk) {
+                        requestChunk(msg.world, msg.chunk.x, msg.chunk.z);
+                    }
+                    
+                    // Update individual machine card fields (fuel, button states) without full re-render
+                    if (msg.machines && msg.machines.length > 0) {
+                        updateMachineCardFields(msg.machines);
+                    }
+                    
+                    // Don't re-render the entire list on every status update - this causes flickering
+                    // Only update meshes, the list will be updated when machines are added/removed (full_state)
+                    updateMachineMeshes();
+                    break;
+                
+                case 'chunk_response':
+                    console.log('Received chunk_response:', msg.chunks?.length, 'chunks');
+                    if (msg.chunks && Array.isArray(msg.chunks)) {
+                        msg.chunks.forEach(chunk => {
+                            const chunkKey = `${chunk.dimension || 'overworld'},${chunk.x},${chunk.z}`;
+                            console.log('Processing chunk:', chunkKey, 'blocks:', chunk.data?.length);
+                            console.log('Chunk data structure:', {
+                                hasData: !!chunk.data,
+                                isArray: Array.isArray(chunk.data),
+                                dataLength: chunk.data?.length,
+                                firstBlock: chunk.data?.[0]
+                            });
+                            // Always update the chunk in our map and render it (even if we've seen it before)
+                            chunks.set(chunkKey, chunk);
+                            // Force re-render by calling updateChunkMesh
+                            updateChunkMesh(chunk);
+                        });
+                    } else {
+                        console.warn('chunk_response received but msg.chunks is missing or empty');
+                    }
+                    break;
+            }
+            // Always update meshes when state changes
+            updateMachineMeshes();
+        }
+
+        function updateMachineList() {
+            const container = document.getElementById('machineList');
+            
+            if (machines.size === 0 && entities.size === 0) {
+                container.innerHTML = '<div class="empty-state">No machines connected</div>';
+                return;
+            }
+            
+            // Combine machines and entities data
+            const allMachines = Array.from(machines.values()).map(machine => {
+                const entity = entities.get(machine.id);
+                return {
+                    ...machine,
+                    position: entity?.position || machine.status?.position,
+                    facing: entity?.facing || machine.status?.facing,
+                    fuel: machine.status?.fuel,
+                    capabilities: machine.capabilities || {},
+                    status: {
+                        ...machine.status,
+                        label: machine.status?.label
+                    }
+                };
+            });
+            
+            container.innerHTML = allMachines.map(machine => createMachineCard(machine)).join('');
+            updateMachineMeshes();
+        }
+        
+        // Update individual machine card fields when status updates arrive
+        function updateMachineCardFields(updatedMachines) {
+            updatedMachines.forEach(machine => {
+                const machineItem = document.querySelector(`[data-machine-id="${machine.id}"]`);
+                if (!machineItem) return;
+                
+                const storedMachine = machines.get(machine.id);
+                if (!storedMachine) return;
+                
+                // Use merged status from storedMachine (which has been updated in state_update handler)
+                const mergedStatus = storedMachine.status || {};
+                
+                // Update fuel value
+                if (mergedStatus.fuel !== undefined && mergedStatus.fuel !== null) {
+                    // Find fuel element by looking for the one after "Fuel" label
+                    const infoItems = machineItem.querySelectorAll('.info-item');
+                    infoItems.forEach(item => {
+                        const label = item.querySelector('.info-label');
+                        if (label && label.textContent === 'Fuel') {
+                            const value = item.querySelector('.info-value');
+                            if (value) {
+                                value.textContent = mergedStatus.fuel.toString();
+                            }
+                        }
+                    });
+                }
+                
+                // Update refuel button state
+                const hasFuelItems = mergedStatus.hasFuelItems !== undefined 
+                    ? mergedStatus.hasFuelItems 
+                    : false;
+                const refuelButton = machineItem.querySelector('.machine-actions button[onclick*="refuel"]');
+                if (refuelButton) {
+                    if (hasFuelItems) {
+                        refuelButton.removeAttribute('disabled');
+                        refuelButton.title = 'Refuel using fuel items in inventory';
+                    } else {
+                        refuelButton.setAttribute('disabled', 'disabled');
+                        refuelButton.title = 'No fuel items in inventory';
+                    }
+                }
+                
+                // Update status display
+                if (mergedStatus.status) {
+                    const statusElement = machineItem.querySelector('.info-value.status-idle, .info-value.status-busy, .info-value.status-moving');
+                    if (statusElement) {
+                        statusElement.className = `info-value status-${mergedStatus.status}`;
+                        statusElement.textContent = mergedStatus.status.toUpperCase();
+                    }
+                }
+            });
+        }
+        
+        // Set up event delegation for machine list clicks (only once)
+        let machineListClickHandlerSetup = false;
+        function setupMachineListClickHandler() {
+            if (machineListClickHandlerSetup) return;
+            machineListClickHandlerSetup = true;
+            
+            const container = document.getElementById('machineList');
+            container.addEventListener('click', (event) => {
+                // Find the closest machine-item parent
+                const machineItem = event.target.closest('.machine-item');
+                if (machineItem) {
+                    // Check if click was on a button or edit icon (these should not trigger selection)
+                    if (event.target.closest('.btn-icon') || event.target.closest('.edit-icon') || event.target.closest('button')) {
+                        return; // Let the button's own handler deal with it
+                    }
+                    
+                    // Extract machine ID from the element's data attribute
+                    const machineId = machineItem.dataset.machineId;
+                    
+                    if (machineId) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        // Single click only (double click handled separately)
+                        if (event.detail === 1) {
+                            window.selectMachine(machineId);
+                        }
+                    }
+                }
+            });
+            
+            container.addEventListener('dblclick', (event) => {
+                const machineItem = event.target.closest('.machine-item');
+                if (machineItem) {
+                    if (event.target.closest('.btn-icon') || event.target.closest('.edit-icon') || event.target.closest('button')) {
+                        return;
+                    }
+                    const machineId = machineItem.dataset.machineId;
+                    if (machineId) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        window.centerOnMachine(machineId);
+                    }
+                }
+            });
+        }
+
+        // Global function for button onclick handlers
+        window.sendCommandToMachine = function(machineId, command, args = {}) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'command',
+                target: machineId,
+                command: command,
+                args: args
+            }));
+        };
+
+        // Global function to set machine label
+        window.setMachineLabel = function(machineId, label) {
+            window.sendCommandToMachine(machineId, 'setLabel', {label: label});
+        };
+        
+        // Global function to disconnect a machine
+        window.disconnectMachine = function(machineId) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'disconnect_machine',
+                target: machineId
+            }));
+        };
+        
+        // Global function to shutdown server
+        window.shutdownServer = function() {
+            if (!confirm('Are you sure you want to shutdown the server?')) {
+                return;
+            }
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'shutdown_server'
+            }));
+        };
+        
+        // Global function to disconnect a machine
+        window.disconnectMachine = function(machineId) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'disconnect_machine',
+                target: machineId
+            }));
+        };
+        
+        // Global function to shutdown server
+        window.shutdownServer = function() {
+            if (!confirm('Are you sure you want to shutdown the server?')) {
+                return;
+            }
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'shutdown_server'
+            }));
+        };
+
+        // Global function to start editing position
+        window.startEditPosition = function(machineId) {
+            const machine = machines.get(machineId);
+            if (!machine) return;
+            
+            const currentPosition = machine.position && machine.position !== 'unknown' 
+                ? machine.position 
+                : { x: 0, y: 64, z: 0 };
+            
+            const x = prompt(`Enter X coordinate:`, Math.floor(currentPosition.x));
+            if (x === null) return; // User cancelled
+            
+            const y = prompt(`Enter Y coordinate:`, Math.floor(currentPosition.y));
+            if (y === null) return; // User cancelled
+            
+            const z = prompt(`Enter Z coordinate:`, Math.floor(currentPosition.z));
+            if (z === null) return; // User cancelled
+            
+            const newX = parseInt(x);
+            const newY = parseInt(y);
+            const newZ = parseInt(z);
+            
+            if (isNaN(newX) || isNaN(newY) || isNaN(newZ)) {
+                alert('Invalid coordinates. Please enter numbers only.');
+                return;
+            }
+            
+            // Send set_position command
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'set_position',
+                target: machineId,
+                position: { x: newX, y: newY, z: newZ }
+            }));
+        };
+        
+        // Global function to start editing label
+        window.startEditLabel = function(machineId) {
+            const nameDisplay = document.getElementById(`nameDisplay_${machineId}`);
+            const nameContainer = document.getElementById(`nameContainer_${machineId}`);
+            
+            if (!nameDisplay || !nameContainer) return;
+            
+            const currentText = nameDisplay.textContent;
+            const machine = machines.get(machineId);
+            const currentLabel = machine?.status?.label || '';
+            
+            // Create input element
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentLabel;
+            input.style.cssText = 'flex: 1; padding: 4px 8px; background: #222; border: 1px solid #4a9eff; border-radius: 4px; color: #e0e0e0; font-size: 16px; font-weight: bold; font-family: inherit;';
+            
+            const finishEdit = () => {
+                const newLabel = input.value;
+                nameContainer.innerHTML = '';
+                nameContainer.innerHTML = `<span id="nameDisplay_${machineId}">${newLabel || (machine?.type?.replace('_', ' ') + ' #' + machineId)}</span><span class="edit-icon" id="editIcon_${machineId}" onclick="event.stopPropagation(); window.startEditLabel('${machineId}')" title="Edit name">✏️</span>`;
+                
+                if (newLabel !== currentLabel) {
+                    window.setMachineLabel(machineId, newLabel);
+                }
+            };
+            
+            input.onblur = finishEdit;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finishEdit();
+                } else if (e.key === 'Escape') {
+                    nameContainer.innerHTML = '';
+                    nameContainer.innerHTML = `<span id="nameDisplay_${machineId}">${currentText}</span><span class="edit-icon" id="editIcon_${machineId}" onclick="event.stopPropagation(); window.startEditLabel('${machineId}')" title="Edit name">✏️</span>`;
+                }
+            };
+            
+            // Replace display with input
+            nameContainer.innerHTML = '';
+            nameContainer.appendChild(input);
+            input.focus();
+            input.select();
+        };
+
+        function createMachineCard(machine) {
+            const position = machine.position;
+            // For display, always truncate coordinates to integers
+            const positionStr = position && position !== 'unknown' 
+                ? `${Math.floor(position.x)}, ${Math.floor(position.y)}, ${Math.floor(position.z)}`
+                : 'unknown';
+            
+            const facingStr = machine.facing && machine.facing !== 'unknown'
+                ? machine.facing.toUpperCase()
+                : 'unknown';
+            
+            // Get fuel from status for turtles and androids
+            const machineFuel = machine.status?.fuel !== undefined && machine.status.fuel !== null
+                ? machine.status.fuel
+                : (machine.fuel !== undefined && machine.fuel !== null ? machine.fuel : null);
+            const fuelStr = machineFuel !== null && machineFuel !== undefined
+                ? machineFuel.toString()
+                : 'N/A';
+            
+            const hasFuelItems = machine.status?.hasFuelItems !== undefined ? machine.status.hasFuelItems : (machine.capabilities?.hasFuelItems || false);
+            // Check if machine is a turtle (any type ending in "_turtle" or just "turtle")
+            const isTurtle = machine.type && (machine.type === 'turtle' || machine.type.endsWith('_turtle'));
+            const isAndroid = machine.type === 'android';
+            const canRefuel = (isTurtle || isAndroid) && (machine.capabilities?.refuel !== false);
+            const canUpdate = (isTurtle || isAndroid) && (machine.capabilities?.update !== false);
+            const isSelected = selectedMachineId === machine.id;
+            
+            const currentLabel = machine.status?.label || '';
+            return `
+                <div class="machine-item ${isSelected ? 'selected' : ''}" 
+                     data-machine-id="${machine.id}"
+                     style="cursor: pointer;">
+                    <div class="machine-header">
+                        <span class="machine-name" id="nameContainer_${machine.id}">
+                            <span id="nameDisplay_${machine.id}">${currentLabel || (machine.type.replace('_', ' ') + ' #' + machine.id)}</span>
+                            <span class="edit-icon" id="editIcon_${machine.id}" onclick="event.stopPropagation(); window.startEditLabel('${machine.id}')" title="Edit name">✏️</span>
+                        </span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="btn-icon" onclick="event.stopPropagation(); window.sendCommandToMachine('${machine.id}', 'reboot', {})" title="Reboot machine">🔄</button>
+                            <button class="btn-icon" onclick="event.stopPropagation(); window.disconnectMachine('${machine.id}')" title="Disconnect machine">⏏️</button>
+                            <span class="machine-type ${machine.type}">${machine.type}</span>
+                        </div>
+                    </div>
+                    <div class="machine-info">
+                        <div class="info-item">
+                            <span class="info-label">Status</span>
+                            <span class="info-value status-${machine.status?.status || 'idle'}">${(machine.status?.status || 'idle').toUpperCase()}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Position</span>
+                            <span class="info-value ${position === 'unknown' ? 'unknown' : ''}" style="display: flex; align-items: center; gap: 4px;">
+                                ${positionStr}
+                                <span class="edit-icon ${machine.type === 'android' ? 'disabled' : ''}" 
+                                      id="editPositionIcon_${machine.id}" 
+                                      onclick="event.stopPropagation(); ${machine.type === 'android' ? '' : `window.startEditPosition('${machine.id}')`}" 
+                                      title="${machine.type === 'android' ? 'Androids always know their position' : 'Edit position'}">✏️</span>
+                            </span>
+                        </div>
+                        ${machine.facing ? `
+                        <div class="info-item">
+                            <span class="info-label">Facing</span>
+                            <span class="info-value ${machine.facing === 'unknown' ? 'unknown' : ''}">${facingStr}</span>
+                        </div>
+                        ` : ''}
+                        ${(isTurtle || isAndroid) && machineFuel !== null && machineFuel !== undefined ? `
+                        <div class="info-item">
+                            <span class="info-label">Fuel</span>
+                            <span class="info-value">${fuelStr}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ${isTurtle || isAndroid ? `
+                    <div class="machine-actions" style="margin-top: 8px;">
+                        ${canRefuel ? `
+                        <button class="btn btn-primary" 
+                                onclick="event.stopPropagation(); window.sendCommandToMachine('${machine.id}', 'refuel', {count: 'all'})"
+                                ${!hasFuelItems ? 'disabled' : ''}
+                                title="${hasFuelItems ? 'Refuel using fuel items in inventory' : 'No fuel items in inventory'}">
+                            Refuel
+                        </button>
+                        ` : ''}
+                        ${canUpdate ? `
+                        <button class="btn btn-primary" 
+                                onclick="event.stopPropagation(); window.sendCommandToMachine('${machine.id}', 'update', {})"
+                                title="${isAndroid ? 'Update fuel items check and report position' : 'Update fuel items check and scan blocks around turtle'}">
+                            Update
+                        </button>
+                        ` : ''}
+                        ${isAndroid ? `
+                        <label style="display: flex; align-items: center; gap: 8px; margin-top: 8px; cursor: pointer;" onclick="event.stopPropagation();">
+                            <input type="checkbox" id="liveCheckbox_${machine.id}" 
+                                   onchange="event.stopPropagation(); window.toggleAndroidLive('${machine.id}', this.checked)"
+                                   ${(machine.liveMode || androidLiveIntervals.has(machine.id)) ? 'checked' : ''}
+                                   style="cursor: pointer;">
+                            <span style="font-size: 13px;">Live</span>
+                        </label>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Track last selected machine to detect when selection changes
+        let lastSelectedMachineId = null;
+        
+        // Update turtle controls visibility
+        function updateTurtleControls() {
+            const turtleControls = document.getElementById('turtleControls');
+            const androidControls = document.getElementById('androidControls');
+            
+            if (!turtleControls || !androidControls) return;
+            
+            // Check if selection changed
+            const selectionChanged = selectedMachineId !== lastSelectedMachineId;
+            
+            // Hide both by default
+            turtleControls.classList.remove('visible');
+            androidControls.classList.remove('visible');
+            
+            if (selectedMachineId) {
+                const machine = machines.get(selectedMachineId);
+                if (machine) {
+                    const isTurtle = machine.type && (machine.type === 'turtle' || machine.type.endsWith('_turtle'));
+                    const isAndroid = machine.type === 'android';
+                    
+                    if (isTurtle) {
+                        turtleControls.classList.add('visible');
+                        // Update button handlers to use selected machine
+                        // Movement commands automatically trigger an update scan
+                        // sendMoveThenUpdate is defined globally for keyboard shortcuts too
+                        document.getElementById('btnForward').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'forward'});
+                        document.getElementById('btnBack').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'back'});
+                        document.getElementById('btnLeft').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'turn', {direction: 'left'});
+                        document.getElementById('btnRight').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'turn', {direction: 'right'});
+                        document.getElementById('btnUp').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'up'});
+                        document.getElementById('btnDown').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'down'});
+                    } else if (isAndroid) {
+                        androidControls.classList.add('visible');
+                        // Only pre-fill coordinates when selection changes (not on every update)
+                        if (selectionChanged) {
+                            const position = machine.position || machine.status?.position;
+                            if (position && typeof position === 'object') {
+                                // Use truncated coordinates for the input fields
+                                document.getElementById('androidX').value = Math.floor(position.x) || '';
+                                document.getElementById('androidY').value = Math.floor(position.y) || '';
+                                document.getElementById('androidZ').value = Math.floor(position.z) || '';
+                            }
+                        }
+                        // Set the update frequency if we have one stored, otherwise default to 8
+                        const updateFreqInput = document.getElementById('androidUpdateFreq');
+                        if (updateFreqInput && selectionChanged) {
+                            const storedFreq = androidUpdateFrequencies.get(selectedMachineId);
+                            updateFreqInput.value = storedFreq || 8;
+                        }
+                    }
+                }
+            }
+            
+            // Update last selected machine ID
+            lastSelectedMachineId = selectedMachineId;
+        }
+
+        // Global function for movement commands (used by both buttons and keyboard)
+        window.sendMoveThenUpdate = function(machineId, command, args) {
+            console.log('sendMoveThenUpdate called:', machineId, command, args);
+            window.sendCommandToMachine(machineId, command, args);
+            // Wait 500ms for movement to complete before sending update command
+            setTimeout(() => {
+                window.sendCommandToMachine(machineId, 'update', {});
+            }, 500);
+        };
+        
+        // Global functions for selection and camera control
+        window.selectMachine = function(machineId) {
+            const previousSelectedId = selectedMachineId;
+            selectedMachineId = machineId;
+            
+            // Only update selection visual state without full re-render
+            const container = document.getElementById('machineList');
+            if (container) {
+                // Remove selected class from previous machine item
+                if (previousSelectedId) {
+                    const prevItem = container.querySelector(`[data-machine-id="${previousSelectedId}"]`);
+                    if (prevItem) {
+                        prevItem.classList.remove('selected');
+                    }
+                }
+                // Add selected class to new machine item
+                if (machineId) {
+                    const newItem = container.querySelector(`[data-machine-id="${machineId}"]`);
+                    if (newItem) {
+                        newItem.classList.add('selected');
+                    }
+                }
+            }
+            
+            updateSelectionIndicator(); // This will also call updateTurtleControls()
+            updateTurtleControls(); // Update control panel visibility
+        };
+        
+        window.centerOnMachine = function(machineId) {
+            window.selectMachine(machineId);
+            centerCameraOnMachine(machineId);
+        };
+
+        // Toggle Android live updates with custom frequency
+        window.toggleAndroidLive = function(machineId, enabled) {
+            console.log('toggleAndroidLive called:', machineId, enabled);
+            // Clear existing interval if any
+            if (androidLiveIntervals.has(machineId)) {
+                clearInterval(androidLiveIntervals.get(machineId));
+                androidLiveIntervals.delete(machineId);
+            }
+
+            // Get update frequency (Hz) from stored value or default to 8
+            const frequency = androidUpdateFrequencies.get(machineId) || 8;
+            
+            // Notify server of live mode state change
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.error('WebSocket not connected');
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: 'set_live_mode',
+                target: machineId,
+                enabled: enabled,
+                frequency: frequency
+            }));
+
+            if (enabled) {
+                const intervalMs = 1000 / frequency; // Convert Hz to milliseconds
+                
+                // Start live updates with the specified frequency
+                const intervalId = setInterval(() => {
+                    window.sendCommandToMachine(machineId, 'update', {});
+                }, intervalMs);
+                androidLiveIntervals.set(machineId, intervalId);
+                console.log('Live updates started for android:', machineId, 'at', frequency, 'Hz');
+            } else {
+                console.log('Live updates stopped for android:', machineId);
+            }
+            
+            // Update the machine list to reflect checkbox state change
+            updateMachineList();
+        };
+        
+        // Update Android update frequency
+        window.updateAndroidFrequency = function(machineId) {
+            const freqInput = document.getElementById('androidUpdateFreq');
+            if (!freqInput) return;
+            
+            const frequency = parseInt(freqInput.value);
+            if (isNaN(frequency) || frequency < 1 || frequency > 20) {
+                alert('Update frequency must be between 1 and 20 Hz');
+                return;
+            }
+            
+            // Store the UI value (can be up to 20Hz)
+            androidUpdateFrequencies.set(machineId, frequency);
+            console.log('Update frequency set for machine:', machineId, 'to', frequency, 'Hz (will be clamped to 19Hz when active)');
+            
+            // If live mode is currently enabled, restart it with the new frequency (will be clamped to 19Hz)
+            if (androidLiveIntervals.has(machineId)) {
+                window.toggleAndroidLive(machineId, false);
+                window.toggleAndroidLive(machineId, true);
+            }
+        };
+
+        // Handle Android move button click
+        window.moveAndroid = function() {
+            if (!selectedMachineId) {
+                console.log('No machine selected');
+                return;
+            }
+            const machine = machines.get(selectedMachineId);
+            if (!machine || machine.type !== 'android') {
+                console.log('Selected machine is not an android:', machine?.type);
+                return;
+            }
+
+            const xInput = document.getElementById('androidX');
+            const yInput = document.getElementById('androidY');
+            const zInput = document.getElementById('androidZ');
+
+            if (!xInput || !yInput || !zInput) {
+                console.error('Coordinate inputs not found');
+                return;
+            }
+
+            const x = parseInt(xInput.value);
+            const y = parseInt(yInput.value);
+            const z = parseInt(zInput.value);
+
+            if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                alert('Please enter valid coordinates for X, Y, and Z');
+                return;
+            }
+
+            console.log('Sending moveTo command:', { x, y, z });
+            // Send moveTo command
+            window.sendCommandToMachine(selectedMachineId, 'moveTo', {
+                x: x,
+                y: y,
+                z: z
+            });
+        };
+
+        // Setup Enter key handlers for coordinate inputs
+        function setupAndroidInputHandlers() {
+            const androidX = document.getElementById('androidX');
+            const androidY = document.getElementById('androidY');
+            const androidZ = document.getElementById('androidZ');
+            const androidUpdateFreq = document.getElementById('androidUpdateFreq');
+            
+            [androidX, androidY, androidZ].forEach(input => {
+                if (input) {
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            window.moveAndroid();
+                        }
+                    });
+                }
+            });
+            
+            // Add listener for update frequency input
+            if (androidUpdateFreq) {
+                androidUpdateFreq.addEventListener('change', () => {
+                    if (selectedMachineId) {
+                        window.updateAndroidFrequency(selectedMachineId);
+                    }
+                });
+            }
+        }
+
+        // Setup Android input handlers after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            setupAndroidInputHandlers();
+        }, 100);
+
+        // Initialize
+        initScene();
+        setupMachineListClickHandler(); // Set up event delegation for machine list
+        connect();
+    </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "peripherals": {
+    "minecraft:diamond_pickaxe": {
+      "modifier": "mining",
+      "functions": []
+    },
+    "minecraft:iron_pickaxe": {
+      "modifier": "mining",
+      "functions": []
+    },
+    "minecraft:stone_pickaxe": {
+      "modifier": "mining",
+      "functions": []
+    },
+    "minecraft:golden_pickaxe": {
+      "modifier": "mining",
+      "functions": []
+    },
+    "minecraft:netherite_pickaxe": {
+      "modifier": "mining",
+      "functions": []
+    },
+    "advancedperipherals:chat_box": {
+        "modifier": "chatty",
+        "functions": []
+    },
+	"computercraft:wireless_modem_advanced": {
+		"modifier": "wireless",
+		"functions": []
+	},
+	"computercraft:wireless_modem_normal": {
+		"modifier": "wireless",
+		"funtions": []
+	}
+    
+  },
+  "buttonFunctions": {
+    "refuel": {
+      "label": "Refuel",
+      "icon": "⛽",
+      "command": "refuel"
+    }
+  }
+}
+

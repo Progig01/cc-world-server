@@ -89,16 +89,37 @@ wss.on("connection", (ws) => {
                         }
                     }
                     
-                    // Use machine's determineStatus method (type-specific logic)
-                    const determinedStatus = machine.determineStatus(pendingCmds, msg.status);
+                    // Check if turtle has a command queue - if queue exists, status should be busy
+                    const hasCommandQueue = turtleCommandQueues.has(msg.id);
                     
-                    // Update machine status
-                    if (determinedStatus !== null) {
+                    if (hasCommandQueue) {
+                        // Turtle is executing pathfinding commands, keep status as busy
                         if (!machine.status) {
                             machine.status = {};
                         }
-                        machine.status.status = determinedStatus;
-                        machine.currentStatus = determinedStatus;
+                        machine.status.status = "busy";
+                        machine.currentStatus = "busy";
+                    } else {
+                        // Use machine's determineStatus method (type-specific logic)
+                        // But if there are no pending commands, force idle (don't trust agent's status if it says busy)
+                        let determinedStatus = machine.determineStatus(pendingCmds, msg.status);
+                        
+                        // If no pending commands and agent reports busy, override to idle
+                        // (Agent might report busy from its perspective, but server knows command is done)
+                        if (!pendingCmds.has(msg.id) && determinedStatus === "busy") {
+                            console.log(`Overriding busy status to idle for machine ${msg.id} - no pending commands`);
+                            determinedStatus = "idle";
+                        }
+                        
+                        // Update machine status
+                        if (determinedStatus !== null) {
+                            if (!machine.status) {
+                                machine.status = {};
+                            }
+                            machine.status.status = determinedStatus;
+                            machine.currentStatus = determinedStatus;
+                            console.log(`MACHINE_STATUS: Set status for ${msg.id} to ${determinedStatus} (pending: ${pendingCmds.has(msg.id)}, queue: ${hasCommandQueue})`);
+                        }
                     }
                 }
                 
@@ -153,44 +174,94 @@ wss.on("connection", (ws) => {
                             // Small delay to allow status to update
                             setTimeout(() => {
                                 executeNextTurtleCommand(machineId);
+                                
+                                // After executing next command, check if queue is finished and update status
+                                const machine = state.machines.get(machineId);
+                                const pendingCmds = getPendingCommands();
+                                const queueStillExists = turtleCommandQueues.has(machineId);
+                                
+                                if (machine) {
+                                    // If queue is finished and no pending commands, update to idle
+                                    if (!queueStillExists && !pendingCmds.has(machineId)) {
+                                        const determinedStatus = machine.determineStatus(pendingCmds, machine.status);
+                                        if (determinedStatus !== null) {
+                                            if (!machine.status) {
+                                                machine.status = {};
+                                            }
+                                            machine.status.status = determinedStatus;
+                                            machine.currentStatus = determinedStatus;
+                                            broadcastMachineUpdate(machineId);
+                                        }
+                                    }
+                                }
                             }, 50);
                         } else {
                             // Command failed, clear queue and path visualization
                             console.warn(`Turtle ${machineId} command failed, clearing pathfinding queue`);
                             turtleCommandQueues.delete(machineId);
-                            broadcastMachineUpdate(machineId); // Clear path visualization
+                            
+                            // Update status after clearing queue
+                            const machine = state.machines.get(machineId);
+                            if (machine) {
+                                const pendingCmds = getPendingCommands();
+                                const determinedStatus = machine.determineStatus(pendingCmds, machine.status);
+                                if (determinedStatus !== null) {
+                                    if (!machine.status) {
+                                        machine.status = {};
+                                    }
+                                    machine.status.status = determinedStatus;
+                                    machine.currentStatus = determinedStatus;
+                                }
+                            }
+                            
+                            broadcastMachineUpdate(machineId); // Clear path visualization and update status
                         }
                     }
                     
                     // After command is acknowledged, update status appropriately
-                    const machine = state.machines.get(machineId);
-                    const pendingCmds = getPendingCommands();
-                    
-                    if (machine) {
-                        // If there are no more pending commands and no command queue, determine status
-                        if (!pendingCmds.has(machineId) && !turtleCommandQueues.has(machineId)) {
-                            const determinedStatus = machine.determineStatus(pendingCmds, machine.status);
-                            if (determinedStatus !== null) {
+                    // This handles regular (non-pathfinding) commands
+                    if (!wasExecuting) {
+                        const machine = state.machines.get(machineId);
+                        const pendingCmds = getPendingCommands();
+                        
+                        if (machine) {
+                            // Check if turtle has a command queue - if queue exists, status should be busy
+                            const hasCommandQueue = turtleCommandQueues.has(machineId);
+                            
+                            if (hasCommandQueue) {
+                                // Turtle is executing pathfinding commands, keep status as busy
                                 if (!machine.status) {
                                     machine.status = {};
                                 }
-                                machine.status.status = determinedStatus;
-                                machine.currentStatus = determinedStatus;
+                                machine.status.status = "busy";
+                                machine.currentStatus = "busy";
+                                broadcastMachineUpdate(machineId);
+                            } else if (!pendingCmds.has(machineId)) {
+                                // No pending commands and no command queue - update to idle
+                                const determinedStatus = machine.determineStatus(pendingCmds, machine.status);
+                                // Force idle if no pending commands (don't trust agent's status if it says busy)
+                                const finalStatus = (determinedStatus === "busy" && !pendingCmds.has(machineId)) ? "idle" : (determinedStatus || "idle");
+                                
+                                if (!machine.status) {
+                                    machine.status = {};
+                                }
+                                machine.status.status = finalStatus;
+                                machine.currentStatus = finalStatus;
+                                console.log(`COMMAND_ACK: Set status for ${machineId} to ${finalStatus} (no pending commands, no queue)`);
+                                // Always broadcast the status update for regular commands
+                                broadcastMachineUpdate(machineId);
+                            } else {
+                                // Still have pending commands, but broadcast anyway to ensure UI is updated
+                                broadcastMachineUpdate(machineId);
                             }
-                        } else if (turtleCommandQueues.has(machineId)) {
-                            // Turtle is executing pathfinding commands, keep status as busy
-                            if (!machine.status) {
-                                machine.status = {};
-                            }
-                            machine.status.status = "busy";
-                            machine.currentStatus = "busy";
                         }
-                    }
-                    
-                    // Send individual machine update instead of full state
-                    // (Only broadcast if we haven't already broadcasted for facing update)
-                    if (!(msg.ok && acknowledgedCommand === 'turn' && acknowledgedArgs?.direction)) {
-                        broadcastMachineUpdate(machineId);
+                    } else {
+                        // For pathfinding commands, status is handled in the wasExecuting block above
+                        // But we still need to broadcast if it wasn't already broadcasted
+                        // (Only broadcast if we haven't already broadcasted for facing update)
+                        if (!(msg.ok && acknowledgedCommand === 'turn' && acknowledgedArgs?.direction)) {
+                            broadcastMachineUpdate(machineId);
+                        }
                     }
                     // Add machine ID to message before broadcasting
                     const ackMsg = { ...msg, machineId: machineId };
@@ -456,9 +527,12 @@ function handleTurtleMoveTo(machineId, args) {
         z: Math.floor(args.z)
     };
     
-    // Find path using A* pathfinding
-    console.log(`Finding path for turtle ${machineId} from (${currentPos.x}, ${currentPos.y}, ${currentPos.z}) to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`);
-    const path = findPath(currentPos, targetPos, 'overworld');
+    // Get current facing direction (default to north if unknown)
+    const facing = entity?.facing || machine.status?.facing || 'north';
+    
+    // Find path using A* pathfinding (exclude this turtle from collision checks, pass facing to penalize backward movement)
+    console.log(`Finding path for turtle ${machineId} from (${currentPos.x}, ${currentPos.y}, ${currentPos.z}) to (${targetPos.x}, ${targetPos.y}, ${targetPos.z}), facing: ${facing}`);
+    const path = findPath(currentPos, targetPos, 'overworld', machineId, facing);
     
     if (!path || path.length === 0) {
         console.warn(`No path found for turtle ${machineId} to (${targetPos.x}, ${targetPos.y}, ${targetPos.z})`);
@@ -467,9 +541,6 @@ function handleTurtleMoveTo(machineId, args) {
     }
     
     console.log(`Path found: ${path.length} steps`);
-    
-    // Get current facing direction (default to north if unknown)
-    const facing = entity?.facing || machine.status?.facing || 'north';
     
     // Convert path to commands
     const commands = pathToCommands(path, facing);
@@ -510,7 +581,22 @@ function executeNextTurtleCommand(machineId) {
         console.log(`Turtle ${machineId} command queue is empty, clearing`);
         // Clear path visualization by broadcasting update without path
         turtleCommandQueues.delete(machineId);
-        broadcastMachineUpdate(machineId); // Broadcast to clear path visualization
+        
+        // Update status to idle since queue is finished
+        const machine = state.machines.get(machineId);
+        if (machine) {
+            const pendingCmds = getPendingCommands();
+            const determinedStatus = machine.determineStatus(pendingCmds, machine.status);
+            if (determinedStatus !== null) {
+                if (!machine.status) {
+                    machine.status = {};
+                }
+                machine.status.status = determinedStatus;
+                machine.currentStatus = determinedStatus;
+            }
+        }
+        
+        broadcastMachineUpdate(machineId); // Broadcast to clear path visualization and update status
         return;
     }
     

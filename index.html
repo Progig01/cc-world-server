@@ -3226,6 +3226,7 @@
                         document.getElementById('btnDown').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'down'});
                         
                         // Update coordinate inputs with current position
+                        const entity = entities.get(selectedMachineId);
                         const entityPos = entity?.position || machine?.status?.position;
                         if (entityPos && entityPos !== 'unknown' && typeof entityPos === 'object') {
                             const xInput = document.getElementById('turtleX');

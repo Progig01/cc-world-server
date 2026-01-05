@@ -4,6 +4,7 @@ export const MSG = {
     MACHINE_STATUS: "machine_status",
     CHUNK_UPDATE: "chunk_update",
     COMMAND_ACK: "command_ack",
+    TERMINAL_OUTPUT: "terminal_output",
 
     // browser → server
     COMMAND: "command",
@@ -16,6 +17,8 @@ export const MSG = {
     // server → client
     FULL_STATE: "full_state",
     STATE_UPDATE: "state_update",
+    MACHINE_UPDATE: "machine_update",  // Individual machine update
     CHUNK_RESPONSE: "chunk_response",
-    COMMAND_FORWARD: "command_forward"
+    COMMAND_FORWARD: "command_forward",
+    TERMINAL_UPDATE: "terminal_update"
 };

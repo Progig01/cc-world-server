@@ -1,0 +1,77 @@
+{
+  "type": "android",
+  "displayName": "Android",
+  "description": "CC: Tweaked Android",
+  "color": "#ff5722",
+  "mesh": {
+    "geometry": {
+      "type": "box",
+      "size": [0.6, 1.8, 0.6]
+    },
+    "offset": [0.3, 0.9, 0.3],
+    "yOffset": -1
+  },
+  "capabilities": {
+    "moveTo": true,
+    "refuel": true,
+    "update": true,
+    "setLabel": true,
+    "setPosition": false
+  },
+  "commands": {
+    "moveTo": {
+      "name": "moveTo",
+      "args": ["x", "y", "z"],
+      "description": "Move android to specified coordinates"
+    },
+    "refuel": {
+      "name": "refuel",
+      "args": ["count"],
+      "description": "Refuel android using fuel items in inventory"
+    },
+    "update": {
+      "name": "update",
+      "args": ["checkFuel"],
+      "description": "Update fuel items check and report position"
+    }
+  },
+  "ui": {
+    "card": {
+      "showFuel": true,
+      "showFacing": false,
+      "showPosition": true,
+      "editablePosition": false
+    },
+    "controls3D": {
+      "enabled": true,
+      "type": "coordinate",
+      "rightClickMove": true,
+      "yOffset": 1
+    },
+    "cardActions": [
+      {
+        "id": "refuel",
+        "label": "Refuel",
+        "command": "refuel",
+        "args": { "count": "all" },
+        "requires": "hasFuelItems",
+        "tooltip": "Refuel using fuel items in inventory"
+      },
+      {
+        "id": "update",
+        "label": "Update",
+        "command": "update",
+        "args": { "checkFuel": true },
+        "tooltip": "Update fuel items check and report position"
+      },
+      {
+        "id": "liveMode",
+        "label": "Live",
+        "type": "checkbox",
+        "property": "liveMode",
+        "tooltip": "Enable live position updates"
+      }
+    ]
+  }
+}
+

@@ -63,16 +63,33 @@ export function upsertChunk(dimension, x, z, newBlocks) {
 
     // Merge new blocks with existing blocks
     // New blocks replace existing blocks at the same position (with new timestamp)
+    // If a block is scanned as air, remove it from our representation
     for (const block of newBlocks) {
         const posKey = `${block.x},${block.y},${block.z}`;
-        blockMap.set(posKey, {
-            x: block.x,
-            y: block.y,
-            z: block.z,
-            name: block.name || 'unknown',
-            state: block.state || {},
-            updatedAt: now // Update timestamp for this block
-        });
+        const blockName = block.name || 'unknown';
+        
+        // Check if this is an air/empty block
+        // Common air block names: "minecraft:air", "air", empty string, null, or undefined
+        const isAir = !blockName || 
+                     blockName === 'air' || 
+                     blockName === 'minecraft:air' ||
+                     blockName === 'unknown' ||
+                     blockName.toLowerCase().includes('air');
+        
+        if (isAir) {
+            // Remove this block from our representation (it was deleted)
+            blockMap.delete(posKey);
+        } else {
+            // Update/add this block
+            blockMap.set(posKey, {
+                x: block.x,
+                y: block.y,
+                z: block.z,
+                name: blockName,
+                state: block.state || {},
+                updatedAt: now // Update timestamp for this block
+            });
+        }
     }
 
     // Convert map back to array

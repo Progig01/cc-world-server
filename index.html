@@ -373,6 +373,63 @@
             text-align: center;
         }
 
+        .turtle-controls .turtle-coordinate-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .turtle-controls .turtle-coord-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .turtle-controls .turtle-coord-row label {
+            font-size: 12px;
+            color: #888;
+            min-width: 20px;
+        }
+
+        .turtle-controls .turtle-coord-row input {
+            flex: 1;
+            max-width: 80px;
+            padding: 6px;
+            background: #222;
+            border: 1px solid #4a9eff;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .turtle-controls .turtle-coord-row input:focus {
+            outline: none;
+            border-color: #4a9eff;
+            box-shadow: 0 0 4px rgba(74, 158, 255, 0.5);
+        }
+
+        .turtle-controls .move-button {
+            width: 100%;
+            padding: 8px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .turtle-controls .move-button:hover {
+            background: #3a8eef;
+        }
+
+        .turtle-controls .move-button:active {
+            background: #2a7edf;
+        }
+
         .turtle-controls .controls-grid {
             display: flex;
             gap: 30px;
@@ -448,9 +505,109 @@
             color: #aaa;
             font-size: 12px;
         }
+
+        .terminal-panel {
+            position: fixed;
+            bottom: 0;
+            left: 350px;
+            right: 0;
+            height: 300px;
+            background: #1a1a1a;
+            border-top: 2px solid #3a3a3a;
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .terminal-panel.visible {
+            display: flex;
+            pointer-events: auto;
+        }
+
+        .terminal-header {
+            padding: 10px 15px;
+            background: #2a2a2a;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: #4a9eff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .terminal-close {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 5px;
+        }
+
+        .terminal-close:hover {
+            color: #fff;
+        }
+
+        .terminal-content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .terminal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-content::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .terminal-content::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .terminal-content::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .terminal-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 120px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 50;
+        }
+
+        .terminal-toggle:hover {
+            background: #3a8eef;
+        }
     </style>
 </head>
 <body>
+    <div class="terminal-panel" id="terminalPanel">
+        <div class="terminal-header">
+            <span class="terminal-title" id="terminalTitle">Terminal Output</span>
+            <button class="terminal-close" onclick="window.toggleTerminal()">×</button>
+        </div>
+        <div class="terminal-content" id="terminalContent"></div>
+    </div>
     <div class="sidebar">
         <div class="header">
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -467,6 +624,7 @@
         </div>
     </div>
     <div class="viewer" id="viewer">
+        <button class="terminal-toggle" onclick="event.stopPropagation(); window.toggleTerminal(); return false;" title="Toggle Terminal">Terminal</button>
         <div class="turtle-controls" id="turtleControls">
             <div class="controls-title">Turtle Controls</div>
             <div class="controls-grid">
@@ -498,6 +656,24 @@
                         ⬇
                     </button>
                 </div>
+            </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #3a3a3a;">
+                <div class="turtle-coordinate-inputs" style="margin-bottom: 10px;">
+                    <div class="turtle-coord-row">
+                        <label>X:</label>
+                        <input type="number" id="turtleX" placeholder="0" step="1">
+                    </div>
+                    <div class="turtle-coord-row">
+                        <label>Y:</label>
+                        <input type="number" id="turtleY" placeholder="0" step="1">
+                    </div>
+                    <div class="turtle-coord-row">
+                        <label>Z:</label>
+                        <input type="number" id="turtleZ" placeholder="0" step="1">
+                    </div>
+                </div>
+                <button class="move-button" id="turtleMoveButton" onclick="window.moveTurtle()">Move To</button>
+                <div style="font-size: 11px; color: #888; margin-top: 8px; text-align: center;">Uses pathfinding to navigate</div>
             </div>
         </div>
         <div class="android-controls" id="androidControls">
@@ -535,6 +711,44 @@
         let chunks = new Map(); // "dimension,x,z" -> chunk data
         let chunkMeshes = new Map(); // "dimension,x,z" -> THREE.Group
         let blockTextures = new Map(); // block name -> THREE.Texture
+        let pathfindingLines = new Map(); // machineId -> THREE.Line for path visualization
+        
+        // Update pathfinding visualization for a turtle
+        function updatePathfindingVisualization(machineId, path) {
+            clearPathfindingVisualization(machineId); // Clear existing line
+
+            if (!path || path.length < 2) {
+                return;
+            }
+
+            const points = [];
+            path.forEach(p => {
+                // Center the line in the block
+                points.push(new THREE.Vector3(p.x + 0.5, p.y + 0.5, p.z + 0.5));
+            });
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0xff0000, // Red color
+                linewidth: 2,    // Thickness of the line
+                transparent: true,
+                opacity: 0.8
+            });
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            pathfindingLines.set(machineId, line);
+        }
+        
+        // Clear pathfinding visualization for a turtle
+        function clearPathfindingVisualization(machineId) {
+            const line = pathfindingLines.get(machineId);
+            if (line) {
+                scene.remove(line);
+                line.geometry.dispose();
+                line.material.dispose();
+                pathfindingLines.delete(machineId);
+            }
+        }
         
         // Camera controls
         let isRightMouseDown = false;
@@ -542,6 +756,39 @@
         let rightClickStartX = 0, rightClickStartY = 0; // Track right-click start position
         let cameraRotation = { x: 0, y: 0 };
         let cameraPosition = { x: 0, y: 50, z: 100 };
+        
+        // Load camera state from localStorage
+        function loadCameraState() {
+            try {
+                const saved = localStorage.getItem('cameraState');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    if (state.position) {
+                        cameraPosition = state.position;
+                    }
+                    if (state.rotation) {
+                        cameraRotation = state.rotation;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load camera state:', e);
+            }
+        }
+        
+        // Save camera state to localStorage
+        function saveCameraState() {
+            try {
+                localStorage.setItem('cameraState', JSON.stringify({
+                    position: { ...cameraPosition },
+                    rotation: { ...cameraRotation }
+                }));
+            } catch (e) {
+                console.warn('Failed to save camera state:', e);
+            }
+        }
+        
+        // Load camera state on initialization
+        loadCameraState();
         const moveSpeed = 0.5;
         const rotationSpeed = 0.002; // Reduced for smoother feel
         const keys = {};
@@ -549,71 +796,190 @@
         let selectionMesh = null;
         let raycaster = new THREE.Raycaster();
         let mouse = new THREE.Vector2();
+        const terminalOutput = new Map(); // machineId -> string (accumulated terminal output)
+        let terminalPanelVisible = false;
         let hoveredObject = null;
         let androidLiveIntervals = new Map(); // machineId -> intervalId
         let androidUpdateFrequencies = new Map(); // machineId -> frequency (Hz)
-        let machinePositionHistory = new Map(); // machineId -> { lastPosition, currentPosition, lastTime, currentTime }
-
-        // Position interpolation function for smooth movement
+        // AAA-quality position buffer system (handles variable update rates 8-20Hz)
+        let machinePositionHistory = new Map(); // machineId -> {
+        //   buffer: Array<{pos, time}>, // Circular buffer of recent positions (up to 4 samples)
+        //   updateRate: number, // Measured update rate (Hz)
+        //   adaptiveLag: number, // Adaptive lag compensation (ms)
+        //   velocity: {x, y, z}, // Current velocity
+        //   lastRenderedPos: {x, y, z} // Last rendered position for smoothing
+        // }
+        
+        const MAX_BUFFER_SIZE = 4; // Keep up to 4 position samples for spline interpolation
+        const MIN_BUFFER_SIZE = 2; // Need at least 2 for interpolation
+        const BASE_LAG_MS = 100; // Base lag compensation
+        const MAX_LAG_MS = 200; // Maximum lag compensation
+        const MIN_UPDATE_RATE = 8; // Minimum expected update rate (Hz)
+        const MAX_UPDATE_RATE = 20; // Maximum expected update rate (Hz)
+        
+        // Catmull-Rom spline interpolation (AAA game quality)
+        function catmullRomSpline(p0, p1, p2, p3, t) {
+            // Catmull-Rom spline: smooth curve through p1 and p2, using p0 and p3 as control points
+            const t2 = t * t;
+            const t3 = t2 * t;
+            
+            return {
+                x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+                y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+                z: 0.5 * ((2 * p1.z) + (-p0.z + p2.z) * t + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 + (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3)
+            };
+        }
+        
+        // Position interpolation function (AAA-quality buffer-based system)
         function interpolatePosition(machineId, targetPosition, timestamp) {
             if (!machinePositionHistory.has(machineId)) {
-                // First position - initialize both last and current to the same value
-                // This allows interpolation to work immediately
+                // Initialize with first position
                 machinePositionHistory.set(machineId, {
-                    lastPosition: { ...targetPosition },
-                    lastTime: timestamp - 1000, // Set lastTime to 1 second ago so interpolation starts from "past"
-                    currentPosition: { ...targetPosition },
-                    currentTime: timestamp
+                    buffer: [{ pos: { ...targetPosition }, time: timestamp }],
+                    updateRate: 10, // Initial estimate
+                    adaptiveLag: BASE_LAG_MS,
+                    velocity: { x: 0, y: 0, z: 0 },
+                    lastRenderedPos: { ...targetPosition }
                 });
                 return;
             }
             
             const history = machinePositionHistory.get(machineId);
             
-            // Always update position history when a new position arrives (even if position hasn't changed)
-            // Shift current to last
-            if (history.currentPosition && history.currentTime > 0) {
-                history.lastPosition = { ...history.currentPosition };
-                history.lastTime = history.currentTime;
-            }
-            // Set new current position
-            history.currentPosition = { ...targetPosition };
-            history.currentTime = timestamp;
-        }
-        
-        // Get interpolated position for rendering (smooth movement between updates)
-        function getInterpolatedPosition(machineId, currentTime) {
-            const history = machinePositionHistory.get(machineId);
-            if (!history || !history.currentPosition) return null;
+            // Add new position to buffer
+            history.buffer.push({ pos: { ...targetPosition }, time: timestamp });
             
-            // If we have both last and current positions with different timestamps, interpolate
-            if (history.lastPosition && history.currentPosition && 
-                history.lastTime > 0 && history.currentTime > history.lastTime) {
-                const timeDiff = history.currentTime - history.lastTime;
-                
-                // Calculate elapsed time since the last position update
-                const elapsed = currentTime - history.lastTime;
-                
-                if (timeDiff > 0 && elapsed >= 0) {
-                    // Calculate interpolation factor: 0 at lastTime (lastPosition), 1 at currentTime (currentPosition)
-                    let t = elapsed / timeDiff;
+            // Keep buffer size manageable (remove oldest entries)
+            if (history.buffer.length > MAX_BUFFER_SIZE) {
+                history.buffer.shift();
+            }
+            
+            // Calculate update rate from buffer
+            if (history.buffer.length >= 2) {
+                const timeSpan = history.buffer[history.buffer.length - 1].time - history.buffer[0].time;
+                const sampleCount = history.buffer.length - 1;
+                if (timeSpan > 0) {
+                    const measuredRate = (sampleCount / timeSpan) * 1000; // Convert to Hz
+                    // Exponential moving average for update rate (smooth out variations)
+                    history.updateRate = history.updateRate * 0.7 + measuredRate * 0.3;
                     
-                    // Clamp to reasonable bounds (allow slight extrapolation up to 1.2x the interval)
-                    t = Math.max(0, Math.min(1.2, t));
-                    
-                    // Use smoothstep for smoother interpolation
-                    const smoothT = t < 1 ? (t * t * (3 - 2 * t)) : t; // Smoothstep for [0,1], linear beyond
-                    
-                    return {
-                        x: history.lastPosition.x + (history.currentPosition.x - history.lastPosition.x) * smoothT,
-                        y: history.lastPosition.y + (history.currentPosition.y - history.lastPosition.y) * smoothT,
-                        z: history.lastPosition.z + (history.currentPosition.z - history.lastPosition.z) * smoothT
-                    };
+                    // Adapt lag compensation based on update rate
+                    // Lower update rate = more lag needed for smooth interpolation
+                    const rateRatio = Math.max(0, Math.min(1, (history.updateRate - MIN_UPDATE_RATE) / (MAX_UPDATE_RATE - MIN_UPDATE_RATE)));
+                    history.adaptiveLag = BASE_LAG_MS + (MAX_LAG_MS - BASE_LAG_MS) * (1 - rateRatio);
                 }
             }
             
-            // Fall back to current position if no interpolation possible
-            return history.currentPosition;
+            // Calculate velocity from most recent position change
+            if (history.buffer.length >= 2) {
+                const latest = history.buffer[history.buffer.length - 1];
+                const previous = history.buffer[history.buffer.length - 2];
+                const dt = (latest.time - previous.time) / 1000; // Convert to seconds
+                
+                if (dt > 0 && dt < 2) { // Reasonable time difference
+                    history.velocity = {
+                        x: (latest.pos.x - previous.pos.x) / dt,
+                        y: (latest.pos.y - previous.pos.y) / dt,
+                        z: (latest.pos.z - previous.pos.z) / dt
+                    };
+                }
+            }
+        }
+        
+        // Get interpolated/extrapolated position for rendering (AAA-quality spline interpolation)
+        function getInterpolatedPosition(machineId, currentTime) {
+            const history = machinePositionHistory.get(machineId);
+            if (!history || !history.buffer || history.buffer.length === 0) return null;
+            
+            // Apply adaptive lag compensation (adjusts based on actual update rate)
+            const renderTime = currentTime - history.adaptiveLag;
+            
+            const buffer = history.buffer;
+            const latest = buffer[buffer.length - 1];
+            
+            // If we only have one sample, use it directly
+            if (buffer.length === 1) {
+                return latest.pos;
+            }
+            
+            // Find the two samples to interpolate between
+            let p0, p1, p2, p3;
+            let t = 0;
+            
+            // Find the segment we're in
+            for (let i = 0; i < buffer.length - 1; i++) {
+                const sample0 = buffer[i];
+                const sample1 = buffer[i + 1];
+                
+                if (renderTime >= sample0.time && renderTime <= sample1.time) {
+                    // We're between these two samples
+                    const timeDiff = sample1.time - sample0.time;
+                    if (timeDiff > 0) {
+                        t = (renderTime - sample0.time) / timeDiff;
+                        
+                        // Get control points for Catmull-Rom spline
+                        if (i === 0) {
+                            // First segment: duplicate first point
+                            p0 = sample0.pos;
+                            p1 = sample0.pos;
+                            p2 = sample1.pos;
+                            p3 = buffer.length > 2 ? buffer[i + 2].pos : sample1.pos;
+                        } else if (i === buffer.length - 2) {
+                            // Last segment: duplicate last point
+                            p0 = buffer[i - 1].pos;
+                            p1 = sample0.pos;
+                            p2 = sample1.pos;
+                            p3 = sample1.pos;
+                        } else {
+                            // Middle segment: use all 4 points
+                            p0 = buffer[i - 1].pos;
+                            p1 = sample0.pos;
+                            p2 = sample1.pos;
+                            p3 = buffer[i + 2].pos;
+                        }
+                        
+                        // Use Catmull-Rom spline for smooth interpolation
+                        const splinePos = catmullRomSpline(p0, p1, p2, p3, t);
+                        
+                        // Apply light exponential smoothing to reduce micro-jitter (AAA technique)
+                        const smoothingFactor = 0.15; // Light smoothing (85% new, 15% old)
+                        history.lastRenderedPos = {
+                            x: history.lastRenderedPos.x * (1 - smoothingFactor) + splinePos.x * smoothingFactor,
+                            y: history.lastRenderedPos.y * (1 - smoothingFactor) + splinePos.y * smoothingFactor,
+                            z: history.lastRenderedPos.z * (1 - smoothingFactor) + splinePos.z * smoothingFactor
+                        };
+                        
+                        return history.lastRenderedPos;
+                    }
+                }
+            }
+            
+            // If we're beyond the latest sample, extrapolate using velocity
+            if (renderTime > latest.time) {
+                const extrapolationTime = (renderTime - latest.time) / 1000; // Convert to seconds
+                const maxExtrapolation = history.adaptiveLag / 1000; // Limit to adaptive lag time
+                
+                if (extrapolationTime <= maxExtrapolation && history.velocity) {
+                    const extrapolatedPos = {
+                        x: latest.pos.x + history.velocity.x * extrapolationTime,
+                        y: latest.pos.y + history.velocity.y * extrapolationTime,
+                        z: latest.pos.z + history.velocity.z * extrapolationTime
+                    };
+                    
+                    // Apply smoothing to extrapolated position
+                    const smoothingFactor = 0.15;
+                    history.lastRenderedPos = {
+                        x: history.lastRenderedPos.x * (1 - smoothingFactor) + extrapolatedPos.x * smoothingFactor,
+                        y: history.lastRenderedPos.y * (1 - smoothingFactor) + extrapolatedPos.y * smoothingFactor,
+                        z: history.lastRenderedPos.z * (1 - smoothingFactor) + extrapolatedPos.z * smoothingFactor
+                    };
+                    
+                    return history.lastRenderedPos;
+                }
+            }
+            
+            // Fall back to latest position
+            return latest.pos;
         }
         
         // Initialize Three.js scene
@@ -693,6 +1059,14 @@
                     cameraRotation.y += deltaX * rotationSpeed;
                     cameraRotation.x += deltaY * rotationSpeed;
                     cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.x));
+                    
+                    // Save camera state after rotation (throttled)
+                    if (!window.cameraSaveTimeout) {
+                        window.cameraSaveTimeout = setTimeout(() => {
+                            saveCameraState();
+                            window.cameraSaveTimeout = null;
+                        }, 500);
+                    }
                 } else {
                     // Handle hover
                     handleHover(e);
@@ -791,6 +1165,14 @@
                 const lookAtY = cameraPosition.y - Math.sin(cameraRotation.x);
                 const lookAtZ = cameraPosition.z - Math.cos(cameraRotation.y) * Math.cos(cameraRotation.x);
                 camera.lookAt(lookAtX, lookAtY, lookAtZ);
+                
+                // Save camera state periodically (throttled to avoid excessive writes)
+                if (!window.cameraSaveTimeout) {
+                    window.cameraSaveTimeout = setTimeout(() => {
+                        saveCameraState();
+                        window.cameraSaveTimeout = null;
+                    }, 500); // Save every 500ms max
+                }
                 
                 // Update selection indicator position to follow selected machine
                 if (selectionMesh && selectedMachineId) {
@@ -998,12 +1380,16 @@
                 }
             }
 
-            // Handle right-click to move android
+            // Handle right-click to move android or turtle
             function handleRightClick(event) {
-                // Only handle if an android is selected
                 if (!selectedMachineId) return;
                 const machine = machines.get(selectedMachineId);
-                if (!machine || machine.type !== 'android') return;
+                if (!machine) return;
+                
+                const isAndroid = machine.type === 'android';
+                const isTurtle = machine.type === 'turtle' || machine.type.endsWith('_turtle');
+                
+                if (!isAndroid && !isTurtle) return;
 
                 const rect = container.getBoundingClientRect();
                 mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -1037,10 +1423,14 @@
                     const targetY = Math.floor(adjustedPoint.y);
                     const targetZ = Math.floor(adjustedPoint.z);
                     
+                    // For androids and turtles: move to block ABOVE the clicked block (y+1)
+                    // This ensures the machine stands on top of the block, not inside it
+                    const moveY = targetY + 1;
+                    
                     // Send moveTo command
                     window.sendCommandToMachine(selectedMachineId, 'moveTo', {
                         x: targetX,
-                        y: targetY,
+                        y: moveY,
                         z: targetZ
                     });
                 }
@@ -1424,31 +1814,18 @@
                 const position = entity?.position || machine.status?.position;
                 
                 if (position && position !== 'unknown' && typeof position === 'object') {
-                    // Check if this machine has live mode enabled for interpolation
-                    const isLive = machine.liveMode;
+                    const isAndroid = machine.type === 'android';
                     
-                    if (isLive) {
-                        // Use interpolated position for smooth movement
+                    if (isAndroid) {
+                        // Androids: Use exact position (no interpolation - too janky)
+                        meshGroup.position.set(position.x, position.y - 1, position.z);
+                    } else {
+                        // Turtles: Use interpolated position for smooth movement
                         const interpolatedPos = getInterpolatedPosition(id, currentTime);
                         if (interpolatedPos) {
-                            if (machine.type === 'android') {
-                                meshGroup.position.set(interpolatedPos.x, interpolatedPos.y - 1, interpolatedPos.z);
-                            } else {
-                                meshGroup.position.set(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z);
-                            }
+                            meshGroup.position.set(interpolatedPos.x, interpolatedPos.y, interpolatedPos.z);
                         } else {
                             // Fallback to exact position if interpolation fails
-                            if (machine.type === 'android') {
-                                meshGroup.position.set(position.x, position.y - 1, position.z);
-                            } else {
-                                meshGroup.position.set(position.x, position.y, position.z);
-                            }
-                        }
-                    } else {
-                        // Use exact position for non-live machines
-                        if (machine.type === 'android') {
-                            meshGroup.position.set(position.x, position.y - 1, position.z);
-                        } else {
                             meshGroup.position.set(position.x, position.y, position.z);
                         }
                     }
@@ -1558,6 +1935,96 @@
             updateSelectionIndicator();
         }
         
+        // Update/create a single machine mesh (for individual updates)
+        function updateSingleMachineMesh(machineId) {
+            const machine = machines.get(machineId);
+            if (!machine) return;
+            
+            const entity = entities.get(machineId);
+            const position = entity?.position || machine.status?.position;
+            
+            // Remove existing mesh if it exists
+            const existingMesh = machineMeshes.get(machineId);
+            if (existingMesh) {
+                scene.remove(existingMesh);
+                machineMeshes.delete(machineId);
+            }
+            
+            // Only create mesh if we have a valid position
+            if (!position || position === 'unknown' || typeof position !== 'object') {
+                // Update selection indicator in case this machine was selected
+                if (selectedMachineId === machineId) {
+                    updateSelectionIndicator();
+                }
+                return;
+            }
+            
+            // Create a group to hold the cube and arrow
+            const group = new THREE.Group();
+            
+            // Create a cube to represent the machine
+            let geometry;
+            if (machine.type === 'android') {
+                geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6); // Player-like proportions
+            } else {
+                geometry = new THREE.BoxGeometry(1, 1, 1);
+            }
+            
+            // Color based on type (support dynamic types)
+            let color = 0x888888;
+            if (machine.type === 'computer') color = 0x2196f3;
+            else if (machine.type === 'android') color = 0xff5722; // Deep orange for android
+            else if (machine.type && machine.type.endsWith('_turtle')) {
+                // Dynamic turtle types - use color based on modifiers
+                if (machine.type.includes('mining')) color = 0x4caf50;
+                else if (machine.type.includes('chatty')) color = 0x9c27b0;
+                else if (machine.type.includes('wireless')) color = 0x9c27b0; // Purple for wireless
+                else color = 0xff9800; // Default orange for basic turtle
+            }
+            
+            const material = new THREE.MeshStandardMaterial({ color: color });
+            const cubeMesh = new THREE.Mesh(geometry, material);
+            if (machine.type === 'android') {
+                // Androids: position so feet are at y=0 (group position y coordinate)
+                cubeMesh.position.set(0.3, 0.9, 0.3); // Center at (0.3, 0.9, 0.3) so bottom is at y=0
+            } else {
+                cubeMesh.position.set(0.5, 0.5, 0.5); // Offset so corner aligns with block grid
+            }
+            group.add(cubeMesh);
+            
+            // Add facing direction indicator for turtles
+            const facing = entity?.facing || machine.status?.facing;
+            const isTurtle = machine.type && (machine.type === 'turtle' || machine.type.endsWith('_turtle'));
+            if (isTurtle && facing && facing !== 'unknown') {
+                // Create an arrow pointing in the facing direction
+                const arrowGeometry = new THREE.ConeGeometry(0.2, 0.8, 8);
+                const arrowMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                arrow.position.set(0.5, 1.4, 0.5); // Center at cube center (x,z) and at 1.4 (y) so half sticks out
+                // Rotate cone to point horizontally (cone normally points up along Y axis)
+                arrow.rotation.x = -Math.PI / 2; // Rotate 90 degrees to point forward (north/-Z)
+                // Rotate around Z axis based on facing direction
+                const facingRotation = getFacingRotation(facing);
+                arrow.rotation.z = facingRotation; // Rotate in the facing direction
+                group.add(arrow);
+            }
+            
+            // Position at block coordinates (blocks align by corner, not center)
+            // For androids, adjust Y position down by 1 block since they're rendered 1 block too high
+            if (machine.type === 'android') {
+                group.position.set(position.x, position.y - 1, position.z);
+            } else {
+                group.position.set(position.x, position.y, position.z);
+            }
+            scene.add(group);
+            machineMeshes.set(machineId, group);
+            
+            // Update selection indicator if this machine is selected
+            if (selectedMachineId === machineId) {
+                updateSelectionIndicator();
+            }
+        }
+        
         // Update selection indicator
         function updateSelectionIndicator() {
             // Remove old selection indicator
@@ -1602,37 +2069,72 @@
         
         // Center camera on machine
         function centerCameraOnMachine(machineId) {
-            const machineGroup = machineMeshes.get(machineId);
-            if (!machineGroup) return;
+            const machine = machines.get(machineId);
+            if (!machine) {
+                console.warn('Cannot center camera: machine not found', machineId);
+                return;
+            }
             
-            const targetPosition = machineGroup.position.clone();
+            // Get position directly from machine status (the one shown in the card)
+            const position = machine.status?.position;
             
-            // Calculate a good distance based on the scene bounds
-            // Use a fixed distance that ensures the machine is visible
-            const distance = 15;
+            if (!position || position === 'unknown' || typeof position !== 'object') {
+                console.warn('Cannot center camera: machine position unknown', machineId, position);
+                return;
+            }
             
-            // Position camera at an offset from the target
-            // Use a diagonal offset to get a nice 3/4 view
-            const offset = new THREE.Vector3(distance * 0.7, distance * 0.7, distance * 0.7);
-            cameraPosition.x = targetPosition.x + offset.x;
-            cameraPosition.y = targetPosition.y + offset.y;
-            cameraPosition.z = targetPosition.z + offset.z;
+            // Target position is the agent's position (center of the agent)
+            // For androids, position is at feet, so center is at y + 0.9 (half of 1.8 height)
+            // For turtles/computers, position is at block corner, so center is at y + 0.5
+            let targetY = position.y;
+            if (machine.type === 'android') {
+                targetY = position.y + 0.9; // Center of android (1.8 blocks tall)
+            } else {
+                targetY = position.y + 0.5; // Center of 1x1x1 block
+            }
             
-            // Simply use lookAt - it's more reliable than calculating rotations manually
+            const targetPosition = new THREE.Vector3(
+                position.x,
+                targetY,
+                position.z
+            );
+            
+            // Position camera: 3 blocks above, 10 blocks behind (in -Z direction, which is "north" in Minecraft)
+            // In Three.js, +Z is typically "forward" in the scene, so "behind" would be -Z
+            // Camera will be at z-10 (behind/north of agent)
+            const cameraOffset = new THREE.Vector3(0, 3, -10); // 3 blocks up, 10 blocks behind (north)
+            
+            // Set camera position
+            cameraPosition.x = targetPosition.x + cameraOffset.x;
+            cameraPosition.y = targetPosition.y + cameraOffset.y;
+            cameraPosition.z = targetPosition.z + cameraOffset.z;
+            
+            // Update camera immediately
             camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
             camera.lookAt(targetPosition.x, targetPosition.y, targetPosition.z);
             
-            // Now extract the rotation from the camera
-            // Get the look direction
-            const lookDirection = new THREE.Vector3();
-            camera.getWorldDirection(lookDirection);
-            lookDirection.multiplyScalar(-1); // Reverse to get direction FROM camera TO target
+            // Extract rotation from the camera's look direction
+            // Calculate the direction vector from camera to target (not from target to camera)
+            const cameraToTarget = new THREE.Vector3();
+            cameraToTarget.subVectors(targetPosition, camera.position);
+            cameraToTarget.normalize();
             
-            // Calculate rotation angles from the look direction
+            // Calculate rotation angles from the direction vector
             // updateCamera uses: lookAt = position + (sin(y)*cos(x), -sin(x), -cos(y)*cos(x))
             // So direction = (sin(y)*cos(x), -sin(x), -cos(y)*cos(x))
-            cameraRotation.x = -Math.asin(lookDirection.y);
-            cameraRotation.y = Math.atan2(-lookDirection.x, -lookDirection.z);
+            // From this: 
+            //   -sin(x) = direction.y  =>  x = -asin(direction.y)
+            //   sin(y)*cos(x) = direction.x  =>  y = atan2(direction.x, -direction.z) (using cos(y) from z component)
+            cameraRotation.x = -Math.asin(cameraToTarget.y);
+            cameraRotation.y = Math.atan2(cameraToTarget.x, -cameraToTarget.z);
+            
+            // Clamp rotation to valid range
+            cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.x));
+            
+            // Save camera state after centering
+            saveCameraState();
+            
+            console.log('Camera centered on machine', machineId, 'at', targetPosition, 'camera at', cameraPosition);
         }
 
         // Update background color based on game time
@@ -1790,8 +2292,10 @@
                         const currentTime = performance.now();
                         msg.entities.forEach(e => {
                             entities.set(e.id, e);
-                            // Initialize position history for interpolation
-                            if (e.position && typeof e.position === 'object') {
+                            // Initialize position history for interpolation (turtles only, not androids)
+                            const machine = machines.get(e.id);
+                            const isAndroid = machine?.type === 'android';
+                            if (e.position && typeof e.position === 'object' && !isAndroid) {
                                 interpolatePosition(e.id, e.position, currentTime);
                             }
                         });
@@ -1841,18 +2345,25 @@
                             if (!entities.has(e.id) && e.position && typeof e.position === 'object') {
                                 newEntities.push(e);
                             }
-                            // Update position history for interpolation when position changes
+                            // Get existing entity BEFORE updating, so we can compare positions
                             const existingEntity = entities.get(e.id);
-                            if (e.position && typeof e.position === 'object') {
+                            
+                            // Update entity
+                            entities.set(e.id, e);
+                            
+                            // Update position history for interpolation when position changes (turtles only, not androids)
+                            const machine = machines.get(e.id);
+                            const isAndroid = machine?.type === 'android';
+                            if (e.position && typeof e.position === 'object' && !isAndroid) {
                                 if (!existingEntity || 
                                     !existingEntity.position ||
                                     existingEntity.position.x !== e.position.x ||
                                     existingEntity.position.y !== e.position.y ||
                                     existingEntity.position.z !== e.position.z) {
+                                    // Position changed - update interpolation history
                                     interpolatePosition(e.id, e.position, currentTime);
                                 }
                             }
-                            entities.set(e.id, e);
                         });
                         
                         // Request chunks for any new entities
@@ -1937,6 +2448,8 @@
                         machinesToRemove.forEach(id => {
                             machines.delete(id);
                             entities.delete(id);
+                            // Clear pathfinding visualization
+                            clearPathfindingVisualization(id);
                             // Clear selection if disconnected machine was selected
                             if (selectedMachineId === id) {
                                 selectedMachineId = null;
@@ -1959,14 +2472,17 @@
                         requestChunk(msg.world, msg.chunk.x, msg.chunk.z);
                     }
                     
-                    // Update individual machine card fields (fuel, button states) without full re-render
+                    // Update individual machine card fields (fuel, button states, position) without full re-render
                     if (msg.machines && msg.machines.length > 0) {
                         updateMachineCardFields(msg.machines);
                     }
                     
                     // Don't re-render the entire list on every status update - this causes flickering
                     // Only update meshes, the list will be updated when machines are added/removed (full_state)
-                    updateMachineMeshes();
+                    // Note: updateMachineMeshes() recreates all meshes which is expensive
+                    // Positions are updated via updateMachineMeshPositions() in the animation loop
+                    // Individual machine updates are handled by the 'machine_update' case above
+                    // So we don't need to call updateMachineMeshes() on every state update
                     break;
                 
                 case 'chunk_response':
@@ -1990,9 +2506,165 @@
                         console.warn('chunk_response received but msg.chunks is missing or empty');
                     }
                     break;
+
+                case 'terminal_update':
+                    if (msg.machineId && msg.data) {
+                        // Append terminal output for this machine
+                        if (!terminalOutput.has(msg.machineId)) {
+                            terminalOutput.set(msg.machineId, '');
+                        }
+                        const currentOutput = terminalOutput.get(msg.machineId);
+                        terminalOutput.set(msg.machineId, currentOutput + msg.data);
+                        
+                        // Update terminal display if this machine is selected and terminal is visible
+                        if (selectedMachineId === msg.machineId && terminalPanelVisible) {
+                            updateTerminalDisplay(msg.machineId);
+                        }
+                    }
+                    break;
+                
+                case 'machine_update':
+                    // Handle individual machine update (much more efficient than full state)
+                    if (msg.machine && msg.machine.id) {
+                        const machineId = msg.machine.id;
+                        
+                        // Update machine in our state
+                        const existingMachine = machines.get(machineId);
+                        const hadLiveMode = existingMachine?.liveMode || false;
+                        const hadLiveFrequency = existingMachine?.liveFrequency || 8;
+                        
+                        if (existingMachine) {
+                            // Merge updates into existing machine (deep merge to preserve all fields)
+                            if (msg.machine.status) {
+                                // Ensure status object exists
+                                if (!existingMachine.status) {
+                                    existingMachine.status = {};
+                                }
+                                // Deep merge status to ensure all fields are preserved
+                                existingMachine.status = { 
+                                    ...existingMachine.status, 
+                                    ...msg.machine.status 
+                                };
+                                // Explicitly update key fields to ensure they're not lost
+                                if (msg.machine.status.position !== undefined) {
+                                    existingMachine.status.position = msg.machine.status.position;
+                                }
+                                if (msg.machine.status.facing !== undefined) {
+                                    existingMachine.status.facing = msg.machine.status.facing;
+                                }
+                                if (msg.machine.status.fuel !== undefined) {
+                                    existingMachine.status.fuel = msg.machine.status.fuel;
+                                }
+                                if (msg.machine.status.status !== undefined) {
+                                    existingMachine.status.status = msg.machine.status.status;
+                                }
+                            }
+                            if (msg.machine.capabilities) {
+                                existingMachine.capabilities = msg.machine.capabilities;
+                            }
+                            if (msg.machine.liveMode !== undefined) {
+                                existingMachine.liveMode = msg.machine.liveMode;
+                            }
+                            if (msg.machine.liveFrequency !== undefined) {
+                                existingMachine.liveFrequency = msg.machine.liveFrequency;
+                            }
+                        } else {
+                            // New machine - add it
+                            machines.set(machineId, msg.machine);
+                            
+                            // Add the new machine card to the DOM without refreshing the whole list
+                            addMachineCardToDOM(machineId);
+                        }
+                        
+                        // Handle live mode changes
+                        const newLiveMode = msg.machine.liveMode || false;
+                        const newLiveFrequency = msg.machine.liveFrequency || 8;
+                        
+                        if (newLiveMode && !hadLiveMode && !androidLiveIntervals.has(machineId)) {
+                            // Start live mode
+                            let frequency = newLiveFrequency;
+                            // Clamp to 19Hz max
+                            if (frequency > 19) {
+                                frequency = 19;
+                            }
+                            const intervalMs = 1000 / frequency;
+                            const intervalId = setInterval(() => {
+                                window.sendCommandToMachine(machineId, 'update', {});
+                            }, intervalMs);
+                            androidLiveIntervals.set(machineId, intervalId);
+                            androidUpdateFrequencies.set(machineId, newLiveFrequency);
+                            console.log('Started live mode for machine:', machineId, 'at', frequency, 'Hz (clamped)');
+                        } else if (!newLiveMode && hadLiveMode && androidLiveIntervals.has(machineId)) {
+                            // Stop live mode
+                            clearInterval(androidLiveIntervals.get(machineId));
+                            androidLiveIntervals.delete(machineId);
+                            androidUpdateFrequencies.delete(machineId);
+                            console.log('Stopped live mode for machine:', machineId);
+                        } else if (newLiveMode && hadLiveMode && newLiveFrequency !== hadLiveFrequency) {
+                            // Update frequency
+                            clearInterval(androidLiveIntervals.get(machineId));
+                            let frequency = newLiveFrequency;
+                            if (frequency > 19) {
+                                frequency = 19;
+                            }
+                            const intervalMs = 1000 / frequency;
+                            const intervalId = setInterval(() => {
+                                window.sendCommandToMachine(machineId, 'update', {});
+                            }, intervalMs);
+                            androidLiveIntervals.set(machineId, intervalId);
+                            androidUpdateFrequencies.set(machineId, newLiveFrequency);
+                            console.log('Updated live mode frequency for machine:', machineId, 'to', frequency, 'Hz (clamped)');
+                        }
+                        
+                        // Update entity if provided
+                        if (msg.entity) {
+                            entities.set(machineId, msg.entity);
+                            // Feed position to interpolation system for smooth movement (turtles only, not androids)
+                            const machine = machines.get(machineId);
+                            const isAndroid = machine?.type === 'android';
+                            if (msg.entity.position && typeof msg.entity.position === 'object' && !isAndroid) {
+                                interpolatePosition(machineId, msg.entity.position, performance.now());
+                            }
+                        } else if (msg.machine.status?.position || msg.machine.status?.facing !== undefined) {
+                            // Update entity from machine status if entity not provided
+                            const existingEntity = entities.get(machineId);
+                            const newEntity = {
+                                id: machineId,
+                                type: msg.machine.type,
+                                position: msg.machine.status.position ?? existingEntity?.position ?? null,
+                                facing: msg.machine.status.facing !== undefined ? msg.machine.status.facing : (existingEntity?.facing ?? null)
+                            };
+                            entities.set(machineId, newEntity);
+                            // Feed position to interpolation system for smooth movement (turtles only, not androids)
+                            const machine = machines.get(machineId);
+                            const isAndroid = machine?.type === 'android';
+                            if (newEntity.position && typeof newEntity.position === 'object' && !isAndroid) {
+                                interpolatePosition(machineId, newEntity.position, performance.now());
+                            }
+                        }
+                        
+                        // Update pathfinding visualization if path is provided
+                        if (msg.pathfindingPath && Array.isArray(msg.pathfindingPath)) {
+                            updatePathfindingVisualization(machineId, msg.pathfindingPath);
+                        } else {
+                            // Clear path visualization if no path
+                            clearPathfindingVisualization(machineId);
+                        }
+                        
+                        // Update the specific machine card
+                        updateMachineCardFields([msg.machine]);
+                        
+                        // Update only this machine's mesh (much more efficient)
+                        updateSingleMachineMesh(machineId);
+                        
+                        // Update game time if available
+                        if (msg.machine.status?.time !== undefined && msg.machine.status?.time !== null) {
+                            gameTime = msg.machine.status.time;
+                            updateBackgroundColor(gameTime);
+                        }
+                    }
+                    break;
             }
-            // Always update meshes when state changes
-            updateMachineMeshes();
         }
 
         function updateMachineList() {
@@ -2023,19 +2695,93 @@
             updateMachineMeshes();
         }
         
+        // Add a new machine card to the DOM (without refreshing the whole list)
+        function addMachineCardToDOM(machineId) {
+            const machine = machines.get(machineId);
+            if (!machine) return;
+            
+            const container = document.getElementById('machineList');
+            if (!container) return;
+            
+            // Check if card already exists
+            const existingCard = container.querySelector(`[data-machine-id="${machineId}"]`);
+            if (existingCard) return;
+            
+            // Remove empty state message if present
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            // Get entity data for the machine
+            const entity = entities.get(machineId);
+            const machineData = {
+                ...machine,
+                position: entity?.position || machine.status?.position,
+                facing: entity?.facing || machine.status?.facing,
+                fuel: machine.status?.fuel,
+                capabilities: machine.capabilities || {},
+                status: {
+                    ...machine.status,
+                    label: machine.status?.label
+                }
+            };
+            
+            // Create the card HTML
+            const cardHTML = createMachineCard(machineData);
+            
+            // Create a temporary container to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = cardHTML;
+            const newCard = tempDiv.firstElementChild;
+            
+            // Insert the new card at the end of the list
+            container.appendChild(newCard);
+            
+            // Create the 3D mesh for the new machine
+            updateSingleMachineMesh(machineId);
+            
+            // Re-setup click handlers (they might need to be reattached)
+            setupMachineListClickHandler();
+            
+            console.log('Added new machine card for', machineId);
+        }
+        
         // Update individual machine card fields when status updates arrive
         function updateMachineCardFields(updatedMachines) {
             updatedMachines.forEach(machine => {
                 const machineItem = document.querySelector(`[data-machine-id="${machine.id}"]`);
-                if (!machineItem) return;
+                if (!machineItem) {
+                    // Card doesn't exist yet, try to add it
+                    if (machines.has(machine.id)) {
+                        addMachineCardToDOM(machine.id);
+                    }
+                    return;
+                }
                 
                 const storedMachine = machines.get(machine.id);
-                if (!storedMachine) return;
+                if (!storedMachine) {
+                    console.warn(`updateMachineCardFields: No stored machine found for ${machine.id}`);
+                    return;
+                }
                 
-                // Use merged status from storedMachine (which has been updated in state_update handler)
-                const mergedStatus = storedMachine.status || {};
+                // Use merged status from storedMachine (which has been updated in machine_update handler)
+                // Also merge with the incoming machine data to ensure we have the latest
+                const incomingStatus = machine.status || {};
+                const storedStatus = storedMachine.status || {};
+                const mergedStatus = { ...storedStatus, ...incomingStatus };
                 
-                // Update fuel value
+                // Debug logging
+                if (mergedStatus.fuel !== undefined || mergedStatus.position || mergedStatus.facing !== undefined) {
+                    console.log(`Updating card for machine ${machine.id}:`, {
+                        fuel: mergedStatus.fuel,
+                        position: mergedStatus.position,
+                        facing: mergedStatus.facing,
+                        status: mergedStatus.status
+                    });
+                }
+                
+                // Update fuel value (including 0)
                 if (mergedStatus.fuel !== undefined && mergedStatus.fuel !== null) {
                     // Find fuel element by looking for the one after "Fuel" label
                     const infoItems = machineItem.querySelectorAll('.info-item');
@@ -2072,6 +2818,43 @@
                         statusElement.className = `info-value status-${mergedStatus.status}`;
                         statusElement.textContent = mergedStatus.status.toUpperCase();
                     }
+                }
+                
+                // Update position display
+                const entity = entities.get(machine.id);
+                const position = entity?.position || mergedStatus.position || storedMachine.status?.position;
+                
+                // Always update position if we have it
+                if (position && typeof position === 'object' && position !== 'unknown') {
+                    const positionStr = `${Math.floor(position.x)}, ${Math.floor(position.y)}, ${Math.floor(position.z)}`;
+                    const infoItems = machineItem.querySelectorAll('.info-item');
+                    infoItems.forEach(item => {
+                        const label = item.querySelector('.info-label');
+                        if (label && label.textContent === 'Position') {
+                            const valueContainer = item.querySelector('.info-value');
+                            if (valueContainer) {
+                                // Update the text content (preserving the edit icon)
+                                const editIcon = valueContainer.querySelector('.edit-icon');
+                                valueContainer.innerHTML = positionStr + (editIcon ? editIcon.outerHTML : '');
+                            }
+                        }
+                    });
+                }
+                
+                // Update facing display (always update if we have a value, including "unknown")
+                const facing = entity?.facing ?? mergedStatus.facing ?? storedMachine.status?.facing;
+                if (facing !== undefined && facing !== null) {
+                    const infoItems = machineItem.querySelectorAll('.info-item');
+                    infoItems.forEach(item => {
+                        const label = item.querySelector('.info-label');
+                        if (label && label.textContent === 'Facing') {
+                            const value = item.querySelector('.info-value');
+                            if (value) {
+                                value.textContent = facing !== 'unknown' ? facing.toUpperCase() : 'unknown';
+                                value.className = `info-value ${facing === 'unknown' ? 'unknown' : ''}`;
+                            }
+                        }
+                    });
                 }
             });
         }
@@ -2129,6 +2912,7 @@
                 return;
             }
             
+            console.log('sendCommandToMachine called:', { machineId, command, args });
             ws.send(JSON.stringify({
                 type: 'command',
                 target: machineId,
@@ -2292,8 +3076,10 @@
                 ? `${Math.floor(position.x)}, ${Math.floor(position.y)}, ${Math.floor(position.z)}`
                 : 'unknown';
             
-            const facingStr = machine.facing && machine.facing !== 'unknown'
-                ? machine.facing.toUpperCase()
+            // Get facing from status (for turtles) or entity
+            const machineFacing = machine.status?.facing || entities.get(machine.id)?.facing || null;
+            const facingStr = machineFacing && machineFacing !== 'unknown'
+                ? machineFacing.toUpperCase()
                 : 'unknown';
             
             // Get fuel from status for turtles and androids
@@ -2343,10 +3129,10 @@
                                       title="${machine.type === 'android' ? 'Androids always know their position' : 'Edit position'}">✏️</span>
                             </span>
                         </div>
-                        ${machine.facing ? `
+                        ${machineFacing ? `
                         <div class="info-item">
                             <span class="info-label">Facing</span>
-                            <span class="info-value ${machine.facing === 'unknown' ? 'unknown' : ''}">${facingStr}</span>
+                            <span class="info-value ${machineFacing === 'unknown' ? 'unknown' : ''}">${facingStr}</span>
                         </div>
                         ` : ''}
                         ${(isTurtle || isAndroid) && machineFuel !== null && machineFuel !== undefined ? `
@@ -2368,7 +3154,7 @@
                         ` : ''}
                         ${canUpdate ? `
                         <button class="btn btn-primary" 
-                                onclick="event.stopPropagation(); window.sendCommandToMachine('${machine.id}', 'update', {})"
+                                onclick="event.stopPropagation(); window.sendCommandToMachine('${machine.id}', 'update', {checkFuel: true})"
                                 title="${isAndroid ? 'Update fuel items check and report position' : 'Update fuel items check and scan blocks around turtle'}">
                             Update
                         </button>
@@ -2393,6 +3179,22 @@
         
         // Update turtle controls visibility
         function updateTurtleControls() {
+            // Update coordinate inputs with current position
+            if (selectedMachineId) {
+                const machine = machines.get(selectedMachineId);
+                const entity = entities.get(selectedMachineId);
+                const position = entity?.position || machine?.status?.position;
+                
+                if (position && position !== 'unknown' && typeof position === 'object') {
+                    const xInput = document.getElementById('turtleX');
+                    const yInput = document.getElementById('turtleY');
+                    const zInput = document.getElementById('turtleZ');
+                    
+                    if (xInput) xInput.value = Math.floor(position.x);
+                    if (yInput) yInput.value = Math.floor(position.y);
+                    if (zInput) zInput.value = Math.floor(position.z);
+                }
+            }
             const turtleControls = document.getElementById('turtleControls');
             const androidControls = document.getElementById('androidControls');
             
@@ -2422,6 +3224,18 @@
                         document.getElementById('btnRight').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'turn', {direction: 'right'});
                         document.getElementById('btnUp').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'up'});
                         document.getElementById('btnDown').onclick = () => window.sendMoveThenUpdate(selectedMachineId, 'move', {direction: 'down'});
+                        
+                        // Update coordinate inputs with current position
+                        const entityPos = entity?.position || machine?.status?.position;
+                        if (entityPos && entityPos !== 'unknown' && typeof entityPos === 'object') {
+                            const xInput = document.getElementById('turtleX');
+                            const yInput = document.getElementById('turtleY');
+                            const zInput = document.getElementById('turtleZ');
+                            
+                            if (xInput) xInput.value = Math.floor(entityPos.x);
+                            if (yInput) yInput.value = Math.floor(entityPos.y);
+                            if (zInput) zInput.value = Math.floor(entityPos.z);
+                        }
                     } else if (isAndroid) {
                         androidControls.classList.add('visible');
                         // Only pre-fill coordinates when selection changes (not on every update)
@@ -2484,11 +3298,94 @@
             
             updateSelectionIndicator(); // This will also call updateTurtleControls()
             updateTurtleControls(); // Update control panel visibility
+            
+            // Update terminal display if terminal is visible
+            if (terminalPanelVisible && machineId) {
+                updateTerminalDisplay(machineId);
+            }
         };
         
         window.centerOnMachine = function(machineId) {
             window.selectMachine(machineId);
             centerCameraOnMachine(machineId);
+        };
+
+        // Terminal display functions
+        function updateTerminalDisplay(machineId) {
+            const terminalContent = document.getElementById('terminalContent');
+            const terminalTitle = document.getElementById('terminalTitle');
+            
+            if (!terminalContent || !terminalTitle) return;
+            
+            const machine = machines.get(machineId);
+            if (machine) {
+                const machineLabel = machine.status?.label || machine.type + ' #' + machineId;
+                terminalTitle.textContent = `Terminal: ${machineLabel}`;
+            }
+            
+            const output = terminalOutput.get(machineId) || '';
+            terminalContent.textContent = output;
+            
+            // Auto-scroll to bottom
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        }
+
+        window.toggleTerminal = function() {
+            const terminalPanel = document.getElementById('terminalPanel');
+            if (!terminalPanel) return;
+            
+            terminalPanelVisible = !terminalPanelVisible;
+            
+            if (terminalPanelVisible) {
+                terminalPanel.classList.add('visible');
+                // Update display for selected machine
+                if (selectedMachineId) {
+                    updateTerminalDisplay(selectedMachineId);
+                }
+            } else {
+                terminalPanel.classList.remove('visible');
+            }
+        };
+
+        // Handle Turtle facing direction set
+
+        // Handle Turtle move button click
+        window.moveTurtle = function() {
+            if (!selectedMachineId) {
+                console.log('No machine selected');
+                return;
+            }
+            const machine = machines.get(selectedMachineId);
+            if (!machine || (machine.type !== 'turtle' && !machine.type.endsWith('_turtle'))) {
+                console.log('Selected machine is not a turtle:', machine?.type);
+                return;
+            }
+
+            const xInput = document.getElementById('turtleX');
+            const yInput = document.getElementById('turtleY');
+            const zInput = document.getElementById('turtleZ');
+
+            if (!xInput || !yInput || !zInput) {
+                console.error('Coordinate inputs not found');
+                return;
+            }
+
+            const x = parseInt(xInput.value);
+            const y = parseInt(yInput.value);
+            const z = parseInt(zInput.value);
+
+            if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                alert('Please enter valid coordinates for X, Y, and Z');
+                return;
+            }
+
+            console.log('Sending moveTo command to turtle:', { x, y, z });
+            // Send moveTo command (server will handle pathfinding)
+            window.sendCommandToMachine(selectedMachineId, 'moveTo', {
+                x: x,
+                y: y,
+                z: z
+            });
         };
 
         // Toggle Android live updates with custom frequency

@@ -1,0 +1,123 @@
+{
+  "type": "turtle",
+  "displayName": "Turtle",
+  "description": "ComputerCraft Turtle",
+  "color": "#ff9800",
+  "mesh": {
+    "geometry": {
+      "type": "box",
+      "size": [1, 1, 1]
+    },
+    "offset": [0.5, 0.5, 0.5]
+  },
+  "capabilities": {
+    "move": true,
+    "turn": true,
+    "dig": false,
+    "refuel": true,
+    "update": true,
+    "setLabel": true,
+    "setPosition": true
+  },
+  "commands": {
+    "move": {
+      "name": "move",
+      "args": ["direction"],
+      "description": "Move turtle in a direction (forward, back, up, down)"
+    },
+    "turn": {
+      "name": "turn",
+      "args": ["direction"],
+      "description": "Turn turtle left or right"
+    },
+    "dig": {
+      "name": "dig",
+      "args": ["direction"],
+      "description": "Dig in a direction (forward, up, down)"
+    },
+    "refuel": {
+      "name": "refuel",
+      "args": ["count"],
+      "description": "Refuel turtle using fuel items in inventory"
+    },
+    "update": {
+      "name": "update",
+      "args": ["checkFuel"],
+      "description": "Update fuel items check and scan blocks around turtle"
+    }
+  },
+  "ui": {
+    "card": {
+      "showFuel": true,
+      "showFacing": true,
+      "showPosition": true,
+      "editablePosition": true
+    },
+    "controls3D": {
+      "enabled": true,
+      "type": "directional",
+      "buttons": [
+        {
+          "id": "forward",
+          "label": "Forward",
+          "command": "move",
+          "args": { "direction": "forward" },
+          "key": "ArrowUp"
+        },
+        {
+          "id": "back",
+          "label": "Back",
+          "command": "move",
+          "args": { "direction": "back" },
+          "key": "ArrowDown"
+        },
+        {
+          "id": "left",
+          "label": "Turn Left",
+          "command": "turn",
+          "args": { "direction": "left" },
+          "key": "ArrowLeft"
+        },
+        {
+          "id": "right",
+          "label": "Turn Right",
+          "command": "turn",
+          "args": { "direction": "right" },
+          "key": "ArrowRight"
+        },
+        {
+          "id": "up",
+          "label": "Up",
+          "command": "move",
+          "args": { "direction": "up" },
+          "key": "+"
+        },
+        {
+          "id": "down",
+          "label": "Down",
+          "command": "move",
+          "args": { "direction": "down" },
+          "key": "-"
+        }
+      ]
+    },
+    "cardActions": [
+      {
+        "id": "refuel",
+        "label": "Refuel",
+        "command": "refuel",
+        "args": { "count": "all" },
+        "requires": "hasFuelItems",
+        "tooltip": "Refuel using fuel items in inventory"
+      },
+      {
+        "id": "update",
+        "label": "Update",
+        "command": "update",
+        "args": { "checkFuel": true },
+        "tooltip": "Update fuel items check and scan blocks around turtle"
+      }
+    ]
+  }
+}
+

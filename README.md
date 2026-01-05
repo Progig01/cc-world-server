@@ -62,7 +62,7 @@ wget run http://localhost:8081/cc/install.lua
 ├── minecraft-data/
 │   ├── lua-scripts/       # Agent scripts for in-game machines
 │   ├── machine-data/      # Runtime machine configurations (gitignored)
-│   ├── world-data/        # Runtime world chunk data (gitignored)
+│   └── world-data/        # Runtime world chunk data (gitignored)
 │   └── textures/          # Block texture images
 └── package.json           # Node.js dependencies
 ```

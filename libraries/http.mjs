@@ -2,7 +2,8 @@ import http from "http";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { AGENT_VERSION } from "../agentversion.mjs";
+import { AGENT_VERSION } from "./agentversion.mjs";
+import { getMachineConfig, getRegisteredTypes } from "./machines/MachineRegistry.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +62,35 @@ export function startHttpServer(port = 8081) {
             );
             res.writeHead(200, { "Content-Type": "text/html" });
             res.end(html);
+            return;
+        }
+
+        // ---- Machine Configs ----
+        if (req.url === "/api/machine-configs") {
+            // Return all machine configs
+            const configs = {};
+            for (const type of getRegisteredTypes()) {
+                const config = getMachineConfig(type);
+                if (config) {
+                    configs[type] = config;
+                }
+            }
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(configs));
+            return;
+        }
+        
+        if (req.url.startsWith("/api/machine-config/")) {
+            // Return specific machine config
+            const type = req.url.replace("/api/machine-config/", "");
+            const config = getMachineConfig(type);
+            if (config) {
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(JSON.stringify(config));
+            } else {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Machine type not found" }));
+            }
             return;
         }
 

@@ -1,0 +1,31 @@
+{
+  "type": "computer",
+  "displayName": "Computer",
+  "description": "ComputerCraft Computer",
+  "color": "#2196f3",
+  "mesh": {
+    "geometry": {
+      "type": "box",
+      "size": [1, 1, 1]
+    },
+    "offset": [0.5, 0.5, 0.5]
+  },
+  "capabilities": {
+    "setLabel": true,
+    "setPosition": true
+  },
+  "commands": {},
+  "ui": {
+    "card": {
+      "showFuel": false,
+      "showFacing": false,
+      "showPosition": true,
+      "editablePosition": true
+    },
+    "controls3D": {
+      "enabled": false
+    },
+    "cardActions": []
+  }
+}
+

@@ -21,7 +21,7 @@ const COMMANDS_REQUIRING_ACK = new Set([
     'reboot',
     'shutdown',
     'setLabel',
-    'setPosition'
+    'setPosition',
 ]);
 
 // Periodically retry pending commands
